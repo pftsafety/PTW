@@ -3786,9 +3786,16 @@ function loadView(permitNo) {
     api('getApprovalLog',{permitNo}),
     api('getGasTests',{permitNo}),
     api('getWorkerScans',{permitNo}).catch(()=>[]),
-    api('getSignatureImages',{permitNo}).catch(()=>[])   // full base64 for display
-  ]).then(([p,log,tests,scans,sigs])=>{
+    api('getSignatureImages',{permitNo}).catch(()=>[]),
+    api('autoStopCheck',{permitNo}).catch(()=>({stopped:0}))   // auto-stop overdue shifts silently
+  ]).then(([p,log,tests,scans,sigs,autoStop])=>{
     if (!p) { el.innerHTML='<div class="card">Permit not found.</div>'; return; }
+    // If any shifts were just auto-stopped, reload the permit data to get updated state
+    if (autoStop && autoStop.stopped > 0) {
+      return api('getPermitByNo',{permitNo}).then(p2=>{
+        buildView(el, p2||p, log, tests, scans, sigs);
+      });
+    }
     buildView(el,p,log,tests,scans,sigs);
   }).catch(er=>{ el.innerHTML=`<div class="card"><div class="alert alert-error">❌ ${er.message}</div></div>`; });
 }
@@ -4073,7 +4080,7 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div class="fs-num">07</div>
           <div class="fs-title">Shift-wise Approval &amp; Activity Record</div>
         </div>
-        ${renderShiftsTimeline(ex.shifts, ex, sigs, tests, p.permitNo)}
+        ${renderShiftsTimeline(ex.shifts, ex, sigs, tests, p.permitNo, p.validFrom)}
       </div>` : ''}
 
       
@@ -5790,7 +5797,7 @@ function renderQuickStatus(p, ex) {
   + '</div>';
 }
 
-function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo) {
+function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, permitValidFrom) {
   if (!shifts||!shifts.length) return '';
   sigs = sigs || [];
   gasTests = gasTests || [];
@@ -5850,7 +5857,7 @@ function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo) {
 
     return '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
       +'<div style="background:'+hBg+';padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'
-        +'<div><span style="font-size:13px;font-weight:800;color:'+hCl+'">'+fmtShiftDate(sh.date,sh.shiftNo||si+1)+'</span>'
+        +'<div><span style="font-size:13px;font-weight:800;color:'+hCl+'">'+fmtShiftDate(sh.date||(si===0?((ex.workEntries||[])[0]||{}).date||'':''),sh.shiftNo||si+1)+'</span>'
         +'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">'+esc(sh.shift||'')+'</span></div>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(0,0,0,.08);color:'+hCl+'">'+esc(sh.shiftStatus||'Pending')+'</span>'
       +'</div>'
