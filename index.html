@@ -3192,6 +3192,70 @@ function onShiftSelectChange() {
 }
 
 function addWorkEntry()
+   const dateVal = document.getElementById('we-date').value;
+  const fromVal = document.getElementById('we-from').value;
+  const toVal   = document.getElementById('we-to').value;
+  const errEl   = document.getElementById('we-err');
+  errEl.style.display = 'none';
+
+  if (!dateVal) { errEl.textContent='Select a date.'; errEl.style.display='block'; return; }
+  if (!fromVal || !toVal) { errEl.textContent='Enter From and To times.'; errEl.style.display='block'; return; }
+  if (timeToMins(fromVal) === timeToMins(toVal)) { errEl.textContent='From and To times cannot be the same.'; errEl.style.display='block'; return; }
+
+  // Validate: selected date+time must be >= now
+  const now = new Date();
+  const selectedStart = new Date(dateVal + 'T' + fromVal + ':00');
+  if (selectedStart < now) {
+    errEl.textContent = 'Work entry cannot be in the past. Please select a valid future date and time.';
+    errEl.style.display = 'block';
+    errEl.style.background = '#fef2f2'; errEl.style.color = '#b91c1c'; errEl.style.borderColor = '#fecaca';
+    return; // Hard block, do not allow past entries
+  }
+
+  // Max 7 unique dates
+  const uniqueDates = [...new Set(_workEntries.map(e=>e.date))];
+  if (!uniqueDates.includes(dateVal) && uniqueDates.length >= 7) {
+    errEl.textContent = 'Maximum 7 calendar days per permit.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Check permit issue date — work date must be ≥ permit date
+  const permitDateEl = document.querySelector('[name=validFrom]');
+  if (permitDateEl && permitDateEl.value && dateVal < permitDateEl.value) {
+    errEl.textContent = 'Work date cannot be before the permit issue date.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const shiftVal = document.getElementById('we-shift-select') ? document.getElementById('we-shift-select').value : '';
+  if (!shiftVal) { errEl.textContent='Select a shift.'; errEl.style.display='block'; return; }
+  const dutyRequired = shiftVal.indexOf('Third') > -1;
+  const dateLabel = new Date(dateVal+'T00:00:00').toLocaleDateString('en-IN',
+    { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) + ' · ' + shiftVal;
+
+  const entry = {
+    id:           'we-'+Date.now(),
+    date:         dateVal,
+    dateLabel,
+    from:         fromVal,
+    to:           toVal,
+    shift:        shiftVal,
+    dutyRequired,
+    workers:      []
+  };
+  _workEntries.push(entry);
+  _workEntries.sort((a,b) => a.date.localeCompare(b.date) || a.from.localeCompare(b.from));
+
+  renderEntriesList();
+  openEntryWorkers(entry.id);
+
+  // Reset inputs
+  document.getElementById('we-shift-select').value = '';
+  const dw = document.getElementById('we-duty-warn'); if (dw) dw.style.display = 'none';
+  document.getElementById('we-err').style.display = 'none';
+  toast('Entry added: '+dateLabel, 'ok');
+}
 function removeEntry(id) {
   _workEntries = _workEntries.filter(e => e.id !== id);
   if (_activeEntry === id) _activeEntry = null;
