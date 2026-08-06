@@ -4106,14 +4106,15 @@ function buildView(el, p, log, tests, scans, sigs) {
         </div>
       </div>
 
-      <!-- Shift-wise Approval & Activity Record — Section 08 -->
+    <!-- Shift-wise Approval & Activity Record — Section 08 -->
       ${(ex.shifts||[]).length ? `
       <div class="card" id="shifts-section" style="border-top:3px solid var(--blue)">
         <div class="form-section-header">
           <div class="fs-num">08</div>
           <div class="fs-title">Shift-wise Approval &amp; Activity Record</div>
         </div>
-        ${renderShiftsTimeline(ex.shifts, ex, sigs, tests, p.permitNo, p.validFrom)}
+        <!-- 👇 Changed 'p.validFrom' to 'p' at the end of this line 👇 -->
+        ${renderShiftsTimeline(ex.shifts, ex, sigs, tests, p.permitNo, p)} 
       </div>` : ''}
 
       
@@ -5803,7 +5804,8 @@ function renderApprovalWorkflowHorizontal(p, ex) {
 
   const workerAcked = cur ? ((cur.workerAckCount||0) >= (cur.workerAckTotal||0) && (cur.workerAckTotal||0) > 0) : false;
   const dutyApplicable = cur ? (!!cur.dutyOfficerSignTime || cur.shiftStatus === 'Pending Duty Officer') : !!ex.dutyOfficerRequired;
-
+  const originatorName = (cur && cur.originatorName) ? cur.originatorName : p.originatorName;
+  const originatorTime = (cur && cur.originatorSignTime) ? cur.originatorSignTime : p.originatorSignTime;
   const originatorName = cur ? cur.originatorName : p.originatorName;
   const originatorTime = cur ? cur.originatorSignTime : p.originatorSignTime;
   const acceptorName   = cur ? cur.acceptorName   : p.acceptorName;
@@ -5865,14 +5867,14 @@ function renderQuickStatus(p, ex) {
   + '</div>';
 }
 
-function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, permitValidFrom) {
+// 👇 Updated function signature to accept 'p'
+function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, p) {
   if (!shifts||!shifts.length) return '';
   sigs = sigs || [];
-  // Normalise permitValidFrom (may arrive as a Date-object string) to YYYY-MM-DD for the fallback above
   var permitValidFromDate = '';
   try {
-    if (permitValidFrom) {
-      var _pvd = new Date(permitValidFrom);
+    if (p && p.validFrom) { // <-- Updated to use 'p'
+      var _pvd = new Date(p.validFrom);
       if (!isNaN(_pvd.getTime())) permitValidFromDate = _pvd.toISOString().split('T')[0];
     }
   } catch(e) {}
@@ -5885,22 +5887,25 @@ function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, permitValidF
     const hBg    = cancelled?'#f1f5f9':done?'#dcfce7':active?'#dbeafe':'#fef3c7';
     const hCl    = cancelled?'#64748b':done?'#14532d':active?'#1d4ed8':'#92400e';
 
-    const originatorSig = findShiftSig(sigs, 'Originator', sh.originatorSignTime);
+    // 👇 --- ADDED THESE FALLBACKS FOR SHIFT 1 --- 👇
+    const _origTime = sh.originatorSignTime || (si === 0 && p ? p.originatorSignTime : null);
+    const _origName = sh.originatorName || (si === 0 && p ? p.originatorName : null);
+
+    const originatorSig = findShiftSig(sigs, 'Originator', _origTime);
     const acceptorSig   = findShiftSig(sigs, 'Acceptor',   sh.acceptorSignTime);
     const safetySig     = findShiftSig(sigs, 'Safety',     sh.safetySignTime);
     const dutySig       = findShiftSig(sigs, 'Duty',       sh.dutyOfficerSignTime);
 
     const workerAcked = (sh.workerAckCount||0) >= (sh.workerAckTotal||0) && (sh.workerAckTotal||0) > 0;
-    // Duty Officer chip only appears when it was actually invoked for this shift
-    // (Safety approved after-hours), not for every shift unconditionally.
     const dutyOfficerApplicable = !!sh.dutyOfficerSignTime || sh.shiftStatus === 'Pending Duty Officer';
 
     const steps = [
-      {icon:'📝', label:'Originator', done:!!sh.originatorSignTime, detail:esc(sh.originatorName||'—'), time:sh.originatorSignTime||'', sig:originatorSig},
+      {icon:'📝', label:'Originator', done:!!_origTime, detail:esc(_origName||'—'), time:_origTime||'', sig:originatorSig},
       {icon:'✍', label:'Worker Ack', done:workerAcked, detail:(sh.workerAckCount||0)+'/'+(sh.workerAckTotal||0)+' acked', time:'', sig:null},
       {icon:'🏭', label:'Acceptor',   done:!!sh.acceptorSignTime,   detail:esc(sh.acceptorName||'—'),  time:sh.acceptorSignTime||'', sig:acceptorSig},
       {icon:'🛡️', label:'Safety',    done:!!sh.safetySignTime,     detail:esc(sh.safetyName||'—'),    time:sh.safetySignTime||'', sig:safetySig},
     ];
+//... (keep the rest of the function the same)
     if (dutyOfficerApplicable) {
       steps.push({icon:'👔', label:'Duty Ofcr', done:!!sh.dutyOfficerSignTime, detail:sh.dutyOfficerSignTime?esc(sh.dutyOfficerName||'—'):'—', time:sh.dutyOfficerSignTime||'', sig:dutySig});
     }
