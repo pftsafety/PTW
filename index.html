@@ -5804,10 +5804,11 @@ function renderApprovalWorkflowHorizontal(p, ex) {
 
   const workerAcked = cur ? ((cur.workerAckCount||0) >= (cur.workerAckTotal||0) && (cur.workerAckTotal||0) > 0) : false;
   const dutyApplicable = cur ? (!!cur.dutyOfficerSignTime || cur.shiftStatus === 'Pending Duty Officer') : !!ex.dutyOfficerRequired;
+
+  // Uses the updated fallbacks cleanly
   const originatorName = (cur && cur.originatorName) ? cur.originatorName : p.originatorName;
   const originatorTime = (cur && cur.originatorSignTime) ? cur.originatorSignTime : p.originatorSignTime;
-  const originatorName = cur ? cur.originatorName : p.originatorName;
-  const originatorTime = cur ? cur.originatorSignTime : p.originatorSignTime;
+  
   const acceptorName   = cur ? cur.acceptorName   : p.acceptorName;
   const acceptorTime   = cur ? cur.acceptorSignTime   : p.acceptorSignTime;
   const safetyName     = cur ? cur.safetyName     : p.safetyName;
@@ -5835,7 +5836,6 @@ function renderApprovalWorkflowHorizontal(p, ex) {
     + '<div class="tl-h">' + stepsHtml + '</div>'
   + '</div>';
 }
-
 function renderQuickStatus(p, ex) {
   const shifts = ex.shifts || [];
   if (!shifts.length) return '';
