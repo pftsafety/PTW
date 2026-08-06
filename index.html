@@ -1367,11 +1367,7 @@ tbody tr:last-child td { border-bottom:none; }
       </div>
       <button class="modal-close" onclick="document.getElementById('ind-modal').classList.remove('open')">✕</button>
     </div>
-    <div id="ind-select-all-wrap" style="display:none;align-items:center;gap:8px;padding:8px 12px;background:var(--bg);border-radius:8px;margin-bottom:10px;font-size:12px">
-      <input type="checkbox" id="ind-select-all-cb" style="width:15px;height:15px;cursor:pointer">
-      <label for="ind-select-all-cb" style="cursor:pointer">Select all remaining workers for this entry</label>
-      <span id="ind-added-count" style="margin-left:auto;color:var(--slate);font-size:11px"></span>
-    </div>
+   
     <div class="modal-body">
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <div class="search-input" style="flex:1"><input type="text" id="ind-search" placeholder="Search by name or certificate no…" oninput="searchInductees(this.value)" autofocus></div>
@@ -2302,9 +2298,16 @@ async function renderForm() {
   }
   const today=new Date().toISOString().split('T')[0];
 
-  const safetyOpts=(_allUsers||[]).filter(u=>{ const roles=u.roles||(u.role?[u.role]:[]);  return roles.some(r=>['Safety','Admin','Safety Officer'].includes(r)); }).map(u=>
+  const safetyOpts=(_allUsers||[]).filter(u=>{ 
+    const roles=u.roles||(u.role?[u.role]:[]);  
+    return roles.some(r=>['Safety','Safety Officer'].includes(r)); // Admin removed
+  }).map(u=>
     `<option value="${u.email}" data-name="${esc(u.name)}">${esc(u.name)} — ${esc(u.designation||u.role)} (${esc(u.department)})</option>`).join('');
-  const acceptorOpts=_allUsers.filter(u=>u.email!==CU.email).map(u=>
+    
+  const acceptorOpts=(_allUsers||[]).filter(u=>{ 
+    const roles=u.roles||(u.role?[u.role]:[]); 
+    return u.email!==CU.email && roles.includes('Acceptor'); 
+  }).map(u=>
     `<option value="${u.email}" data-name="${esc(u.name)}">${esc(u.name)} — ${esc(u.designation||u.role)} (${esc(u.department)})</option>`).join('');
 
   el.innerHTML=`
@@ -2729,7 +2732,7 @@ async function renderForm() {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;margin-bottom:10px">
           <div class="ptw-field" style="margin-bottom:0">
             <label>Work Date *</label>
-            <input type="date" id="we-date" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;outline:none">
+            <input type="date" id="we-date" min="${today}" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;outline:none">
           </div>
           <div class="ptw-field" style="margin-bottom:0">
             <label>Shift *</label>
@@ -3083,7 +3086,12 @@ function tbtHighlight(key, val) {
 
 // TBT: select all items at once
 function tbtSelectAll(val) {
-  const keys = ['a','b','c','d','e','f','g','h','i','j'];
+// TBT: select all items at once
+function tbtSelectAll(val) {
+  let keys = ['a','b','c','d','e','f','g','h','i','j'];
+  if (val === 'Yes') {
+    keys = ['a','b','c','d','e','f','g','h','i']; // Excludes 'j' when 'Yes' is clicked
+  }
   keys.forEach(k=>{
     const inp = document.querySelector(`input[name="tbt_${k}"][value="${val}"]`);
     if (inp) { inp.checked=true; tbtHighlight(k,val); }
@@ -3196,18 +3204,15 @@ function addWorkEntry() {
   if (!fromVal || !toVal) { errEl.textContent='Enter From and To times.'; errEl.style.display='block'; return; }
   if (timeToMins(fromVal) === timeToMins(toVal)) { errEl.textContent='From and To times cannot be the same.'; errEl.style.display='block'; return; }
 
-  // Validate: selected date+time must be >= now (unless editing past entries for backdated permits)
+// Validate: selected date+time must be >= now
   const now = new Date();
   const selectedStart = new Date(dateVal + 'T' + fromVal + ':00');
   if (selectedStart < now) {
-    // Warn but allow (permit may be for ongoing/past work on same day)
-    const diffMins = Math.round((now - selectedStart) / 60000);
-    if (diffMins > 60) {
-      errEl.textContent = 'Warning: Start time is ' + diffMins + ' min in the past. Continue only if this is a backdated entry.';
-      errEl.style.display = 'block';
-      errEl.style.background = '#fffbeb'; errEl.style.color = '#92400e'; errEl.style.borderColor = '#fde68a';
-      // Allow after warning — don't return, just show warning
-    }
+    errEl.textContent = 'Work entry cannot be in the past. Please select a valid future date and time.';
+    errEl.style.display = 'block';
+    errEl.style.background = '#fef2f2'; errEl.style.color = '#b91c1c'; errEl.style.borderColor = '#fecaca';
+    return; // Hard block, do not allow past entries
+  }
   }
 
   // Max 7 unique dates
@@ -3322,8 +3327,7 @@ function renderEntryCard(e, isOpen, dayNum) {
         <span style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">Workers for this entry</span>
         <div style="display:flex;gap:6px">
           <button type="button" class="btn btn-ghost btn-xs" onclick="openInductionModal()" style="color:var(--blue);font-weight:700">＋ Add from DB</button>
-          <button type="button" class="btn btn-ghost btn-xs" onclick="openWorkerScanner()" style="color:var(--green)">📷 Scan</button>
-        </div>
+      </div>
       </div>
       <table class="ptw-worker-table">
         <thead><tr>
@@ -4844,19 +4848,17 @@ function openInductionModal() {
   </div>`;
   const indModal = document.getElementById('ind-modal') || document.getElementById('induction-modal');
   if(indModal) indModal.classList.add('open');
+  
   // Update target label
   const target = document.getElementById('ind-modal-target');
-  const selAllWrap = document.getElementById('ind-select-all-wrap');
   if (target) {
     if (_activeEntry) {
       const ae = _workEntries.find(e=>e.id===_activeEntry);
       if (ae) {
         target.textContent = ae.dateLabel+' · '+ae.from+'–'+ae.to+(ae.shift?' ('+ae.shift+')':'');
-        if (selAllWrap) selAllWrap.style.display = 'flex';
       }
     } else {
       target.textContent = _workEntries.length===1 ? _workEntries[0].dateLabel+' (auto-selected)' : 'Open a work entry first';
-      if (selAllWrap) selAllWrap.style.display = 'none';
     }
   }
   // Auto-load all records immediately on open
