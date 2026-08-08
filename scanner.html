@@ -884,7 +884,7 @@ async function onScanned(certNo) {
       const warn = `<div style="margin-top:8px;padding:8px 12px;background:rgba(251,191,36,.12);border:1px solid rgba(251,191,36,.4);border-radius:10px;font-size:12px;color:#92400e;font-weight:700">⚠ This worker has already acknowledged this permit</div>`;
       wc.innerHTML += warn;
     }
-    document.getElementById('exec-ack').style.display = _action==='Start' ? 'block' : 'none';
+document.getElementById('exec-ack').style.display = _action==='Acknowledgement' ? 'block' : 'none';
     document.getElementById('exec-check').checked = false;
     hideErr('err4');
     goStep(4);
@@ -901,7 +901,7 @@ async function onScanned(certNo) {
 async function confirmScan() {
   if (!_workerRec) { showErr('err4','No worker scanned.'); return; }
   if (!_workerRec.valid) { showErr('err4','Induction expired — cannot record.'); return; }
-  if (_action==='Start' && !document.getElementById('exec-check').checked) { showErr('err4','Please confirm Work Execution Team briefing.'); return; }
+  if (_action==='Acknowledgement' && !document.getElementById('exec-check').checked) { showErr('err4','Please confirm Work Execution Team briefing.'); return; }
 
   load(true, 'Recording…');
   try {
