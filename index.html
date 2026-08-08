@@ -2800,13 +2800,16 @@ async function renderForm() {
             </div>
           </label>
         </div>
-       <!-- 4D: Job Performer confirmation (recorded via scanner) -->
-<div style="padding:12px 14px;background:${ex.shifts&&ex.shifts.some(s=>s.workerAckCount>0)?'#f0fdf4':'#f8fafc'};display:flex;gap:10px;align-items:flex-start">
-            <div style="width:18px;height:18px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px;${ex.shifts&&ex.shifts.some(s=>s.workerAckCount>0)?'background:var(--green);color:#fff':'border:2px solid #cbd5e1;color:transparent'}">✓</div>
+<!-- 4D: Job Performer confirmation (recorded via scanner) -->
+        <div style="padding:12px 14px;background:#f8fafc">
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="width:16px;height:16px;border:2px solid #cbd5e1;border-radius:3px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center">
+              <span style="font-size:10px;color:transparent">✓</span>
+            </div>
             <div>
               <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">Work Execution Team — Job Performer Acknowledgement</div>
               <div style="font-size:12px;color:#475569;line-height:1.6">The successive steps of the work, the potential hazards and the safety precautions have been explained and understood.</div>
-              <div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">${ex.shifts&&ex.shifts.some(s=>s.workerAckCount>0)?'✓ Confirmed via QR scanner during worker acknowledgement':'Pending — confirmed automatically during worker acknowledgement'}</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">Pending — confirmed automatically during worker acknowledgement via QR scanner</div>
             </div>
           </div>
         </div>
