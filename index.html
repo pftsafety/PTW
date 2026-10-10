@@ -3806,6 +3806,35 @@ function loadView(permitNo) {
   }).catch(er=>{ el.innerHTML=`<div class="card"><div class="alert alert-error">❌ ${er.message}</div></div>`; });
 }
 
+// ── Shift helpers ──────────────────────────────────────────────
+// Shift name and start time, derived from saved times when the name itself is missing.
+const SHIFT_BY_TIMES = {
+  '06:00-14:00': 'First Shift (06:00–14:00)',
+  '14:00-22:00': 'Second Shift (14:00–22:00)',
+  '22:00-06:00': 'Third Shift (22:00–06:00)',
+  '09:15-17:15': 'General Shift (09:15–17:15)'
+};
+function shiftNameFor(sh, entry) {
+  if (sh && sh.shift) return sh.shift;
+  if (entry && entry.shift) return entry.shift;
+  if (entry && entry.from && entry.to) return SHIFT_BY_TIMES[entry.from+'-'+entry.to] || (entry.from+' – '+entry.to);
+  return '';
+}
+// "Valid from" = Shift 1 start time (not the permit's stored timestamp)
+function shiftStartDisplay(p, ex) {
+  const sh1   = (ex.shifts||[])[0] || {};
+  const entry = (ex.workEntries||[])[0] || {};
+  const name  = shiftNameFor(sh1, entry);
+  const m     = name.match(/(\d{2}:\d{2})\s*[–-]/);
+  const start = m ? m[1] : (entry.from || '');
+  const date  = sh1.date || entry.date || '';
+  if (date && start) {
+    const d = new Date(date + 'T' + start + ':00');
+    if (!isNaN(d.getTime())) return fd(d);
+  }
+  return fd(p.validFrom);
+}
+
 function buildView(el, p, log, tests, scans, sigs) {
   scans = scans||[]; sigs = sigs||[];
   _currentPermitView = p;                // store for openAddItemsModal
@@ -3949,7 +3978,7 @@ function buildView(el, p, log, tests, scans, sigs) {
   <div class="ph">
     <div>
       <div class="ph-title">${p.permitNo}</div>
-      <div class="ph-sub">${esc(p.type)||'—'} · ${sbadge(p.status)} · Valid: ${fd(p.validFrom)} → ${fd(p.validTo)}</div>
+      <div class="ph-sub">${esc(p.type)||'—'} · ${sbadge(p.status)} · Valid: ${shiftStartDisplay(p, ex)} → ${fd(p.validTo)}</div>
     </div>
     <div class="btn-group">
       <button class="btn btn-ghost" onclick="nav(CU&&(CU.roles||[CU.role]).some(r=>['Admin','Safety','Safety Officer','Acceptor','Duty Officer'].includes(r))?'all-permits':'my-permits')">← Back</button>
@@ -3978,7 +4007,7 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Area / Site</dt><dd>${esc(p.workArea)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Nature of Permit</dt><dd>${esc(p.type)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Duration</dt><dd>${ex.durationDays?esc(ex.durationDays)+' day(s)':'—'}</dd></div>
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${(ex.durationFrom||ex.durationTo)?esc(ex.durationFrom||'—')+' → '+esc(ex.durationTo||'—'):'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${(()=>{const we=ex.workEntries||[];const f=ex.durationFrom||(we[0]||{}).from||'';const t=ex.durationTo||(we[we.length-1]||{}).to||'';return (f||t)?esc(f||'—')+' → '+esc(t||'—'):'—';})()}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)||'—'} · ${esc(p.originatorDept||'—')}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Permit Acceptor</dt><dd>${esc(p.acceptorName)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety In-Charge</dt><dd>${esc(p.safetyName)||'—'}</dd></div>
@@ -3987,7 +4016,6 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor Emergency Contact No.</dt><dd>${esc(ex.contractorEmergency)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety Harness No.</dt><dd>${esc(ex.safetyHarnessNo)||'—'}</dd></div>
           <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Engineering Equipment Used at Site</dt><dd>${esc(ex.engineeringEquipment)||'—'}</dd></div>
-          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Additional Precautions</dt><dd>${esc(ex.additionalPrecautions)||'—'}</dd></div>
         </dl>
         ${sup.electrical||sup.excavation||sup.confinedSpace?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
@@ -4245,6 +4273,12 @@ function buildView(el, p, log, tests, scans, sigs) {
             <div>${ex.medicalCertRequired||'NA'}${ex.medicalCertDetails?' — '+esc(ex.medicalCertDetails):''}</div>
           </div>
         </div>
+      </div>
+
+      <!-- Additional Precautions -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">⚠️</div><div class="fs-title">Additional Precautions</div></div>
+        <div style="font-size:13px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm);white-space:pre-wrap">${esc(ex.additionalPrecautions)||'—'}</div>
       </div>
 
     </div>
@@ -5182,6 +5216,92 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     });
   });
 
+  // Original single-signature rows, kept for permits created before shifts[]
+  const legacySigRows = () => `  <tr>
+    ${sigTD('Originator','4A — Permit Originator','Work Initiating Dept.')}
+    ${sigTD('Acceptor','4B — Permit Acceptor','Work Effected Dept.')}
+    ${sigTD('Safety','4C — Safety In-Charge','SHE Department')}
+    ${sigTD('Job Performer','4D — Job Performer','Start &amp; Stop Sign-off')}
+  </tr>
+  ${ex.dutyOfficerRequired?`<tr><td colspan="2">${sigTD('Duty Officer','Duty Officer Endorsement','After-hours / Shift 3 work')}</td><td colspan="2" style="border:1px solid #000;padding:4px;font-size:8px;color:#555">Required for work outside 09:15–17:15 hrs or Shift 3 (22:00–06:00 hrs)</td></tr>`:''}
+`;
+
+  // Closure sign-offs are saved under exact closure roles and happen once per permit.
+  const closureSigCell = (label, sub, roleKey) => {
+    const s = [...(sigs||[])].filter(x => x.role === roleKey && x.hasSignature && x.signatureData).pop();
+    const info = (ex.closureSigns||{})[roleKey] || null;
+    const name = s ? s.name : (info ? info.name : '');
+    const time = s ? s.time : (info ? info.time : '');
+    const img = s
+      ? `<img src="${s.signatureData}" alt="signature" style="display:block;height:42px;max-width:150px;object-fit:contain;margin:2px auto">`
+      : '<div style="height:42px;border-bottom:1px dotted #999;margin:4px 0"></div>';
+    return `<td style="border:1px solid #000;padding:4px 5px;vertical-align:top;width:25%">`
+      + `<div style="font-size:8px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>`
+      + `<div style="font-size:8px;color:#444;margin-bottom:3px">${sub||''}</div>${img}`
+      + `<div style="font-size:8px;font-weight:700">${esc2(name||'')}</div>`
+      + `<div style="font-size:7px;color:#555">${time ? fmtDT(time) : ''}</div></td>`;
+  };
+
+  // ── Shift-wise approval helpers ─────────────────────────────────
+  // Each shift has its own signatures. Match a signature to one approval by role and
+  // timestamp (within 15s) so earlier shifts are not overwritten by later ones.
+  const sigAt = (role, time) => {
+    if (!time) return null;
+    const target = new Date(time).getTime();
+    if (isNaN(target)) return null;
+    let best = null, bestDiff = Infinity;
+    (sigs||[]).forEach(s => {
+      if (!s.hasSignature || !s.signatureData || !s.time || !s.role) return;
+      if (s.role.toLowerCase().indexOf(role.toLowerCase()) === -1) return;
+      const d = Math.abs(new Date(s.time).getTime() - target);
+      if (d < bestDiff && d < 15000) { bestDiff = d; best = s; }
+    });
+    return best;
+  };
+  const apprCell = (role, name, time) => {
+    if (!time) return '<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;color:#999;font-size:7.5px">Pending</td>';
+    const s = sigAt(role, time);
+    const img = (s && s.signatureData)
+      ? `<img src="${s.signatureData}" alt="signature" style="display:block;height:34px;max-width:130px;object-fit:contain;margin:2px auto">`
+      : '<div style="height:34px;border-bottom:1px dotted #999;margin:4px 0"></div>';
+    return `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">${img}`
+      + `<div style="font-size:7.5px;font-weight:700">${esc2(name||'')}</div>`
+      + `<div style="font-size:7px;color:#555">${fmtDT(time)}</div></td>`;
+  };
+  const shiftApprovalTable = (shifts) => {
+    const head = ['Shift','Originator','Acceptor','Safety','Duty Officer','Start / Stop'];
+    const widths = ['17%','17%','17%','17%','14%','18%'];
+    const th = head.map((h,i)=>`<th style="background:#eee;border:1px solid #000;font-size:7.5px;padding:3px;text-align:left;width:${widths[i]}">${h}</th>`).join('');
+    const rows = shifts.map(sh => {
+      const cancelled = sh.shiftStatus === 'Cancelled';
+      const shiftCell = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">`
+        + `<div style="font-size:7.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
+        + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date, sh.shiftNo))}</div>`
+        + `<div style="font-size:7px;color:#444">${esc2(sh.shift||'')}</div>`
+        + `<div style="font-size:7px;color:#444">Workers ack: ${sh.workerAckCount||0}/${sh.workerAckTotal||0}</div>`
+        + `<div style="font-size:7.5px;font-weight:700;color:${cancelled?'#64748b':'#0f172a'}">${esc2(sh.shiftStatus||'')}</div></td>`;
+      if (cancelled) {
+        return `<tr>${shiftCell}<td colspan="5" style="border:1px solid #000;padding:3px 4px;font-size:7.5px;color:#475569">`
+          + `Cancelled by ${esc2(sh.cancelledBy||'—')} on ${fmtDT(sh.cancelledAt)} — ${esc2(sh.cancelReason||'No reason given')}. No work carried out under this shift.</td></tr>`;
+      }
+      const dutyApplicable = !!sh.dutyOfficerSignTime || sh.shiftStatus === 'Pending Duty Officer';
+      const dutyCell = dutyApplicable
+        ? apprCell('Duty', sh.dutyOfficerName, sh.dutyOfficerSignTime)
+        : '<td style="border:1px solid #000;padding:3px 4px;color:#999;font-size:7.5px">Not required</td>';
+      const startStop = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;font-size:7.5px">`
+        + `<div>Start: ${sh.jobStartTime ? fmtDT(sh.jobStartTime) : '—'}</div>`
+        + `<div>Stop: ${sh.jobStopTime ? fmtDT(sh.jobStopTime) : '—'}</div>`
+        + (sh.autoStoppedBySystem ? `<div style="color:#9a3412;font-weight:700">Auto-stopped by system</div>` : '')
+        + `</td>`;
+      return `<tr>${shiftCell}`
+        + apprCell('Originator', sh.originatorName, sh.originatorSignTime)
+        + apprCell('Acceptor', sh.acceptorName, sh.acceptorSignTime)
+        + apprCell('Safety', sh.safetyName, sh.safetySignTime)
+        + dutyCell + startStop + `</tr>`;
+    }).join('');
+    return `<table style="width:100%;border-collapse:collapse;table-layout:fixed"><tr>${th}</tr>${rows}</table>`;
+  };
+
   // Sig block helper — embeds actual signature image when available
   const sigTD = (role, label, sub) => {
     const s = sigMap[role];
@@ -5431,13 +5551,9 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       <em>Note: Work scheduled after general duty hours (09:15–17:15 hrs) / change of crew shall be endorsed by Duty Officer.</em>
     </td>
   </tr>
-  <tr>
-    ${sigTD('Originator','4A — Permit Originator','Work Initiating Dept.')}
-    ${sigTD('Acceptor','4B — Permit Acceptor','Work Effected Dept.')}
-    ${sigTD('Safety','4C — Safety In-Charge','SHE Department')}
-    ${sigTD('Job Performer','4D — Job Performer','Start &amp; Stop Sign-off')}
-  </tr>
-  ${ex.dutyOfficerRequired?`<tr><td colspan="2">${sigTD('Duty Officer','Duty Officer Endorsement','After-hours / Shift 3 work')}</td><td colspan="2" style="border:1px solid #000;padding:4px;font-size:8px;color:#555">Required for work outside 09:15–17:15 hrs or Shift 3 (22:00–06:00 hrs)</td></tr>`:''}
+  ${(ex.shifts||[]).length
+    ? `<tr><td colspan="4" style="border:1px solid #000;padding:4px">${shiftApprovalTable(ex.shifts)}</td></tr>`
+    : legacySigRows()}
 </table>
 
 <!-- ════════ SECTION 5: GAS TEST ════════ -->
@@ -5668,10 +5784,10 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
     </td>
   </tr>
   <tr>
-    ${sigTD('Job Performer','Closure — Job Performer','Confirms completion')}
-    ${sigTD('Originator','Closure — Originator','Permit Originator')}
-    ${sigTD('Safety','Closure — Safety In-Charge','SHE Department')}
-    ${sigTD('Acceptor','Closure — Permit Acceptor','Work Effected Dept.')}
+    ${closureSigCell('Closure — Job Performer','Confirms completion','Closure-JobPerformer')}
+    ${closureSigCell('Closure — Originator','Permit Originator','Closure-Originator')}
+    ${closureSigCell('Closure — Safety In-Charge','SHE Department','Closure-Safety')}
+    ${closureSigCell('Closure — Permit Acceptor','Work Effected Dept.','Closure-Acceptor')}
   </tr>
 </table>
 
@@ -5866,7 +5982,7 @@ function renderQuickStatus(p, ex) {
   return '<div class="card" style="background:'+bg+';border:1px solid '+cl+'33;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">'
     + '<div>'
       + '<div style="font-size:11px;font-weight:700;color:'+cl+';text-transform:uppercase;letter-spacing:.4px">Current Activity — Shift '+(idx+1)+' of '+total+'</div>'
-      + '<div style="font-size:15px;font-weight:800;color:'+cl+';margin-top:2px">'+esc(dateLabel)+' &nbsp;&middot;&nbsp; '+esc(cur.shift||'—')+'</div>'
+      + '<div style="font-size:15px;font-weight:800;color:'+cl+';margin-top:2px">'+esc(dateLabel)+' &nbsp;&middot;&nbsp; '+esc(shiftNameFor(cur, cur===shifts[0]?((ex.workEntries||[])[0]||null):null)||'—')+'</div>'
       + '<div style="font-size:12px;color:'+cl+';margin-top:2px">👥 '+workerCount+' worker'+(workerCount===1?'':'s')+'</div>'
     + '</div>'
     + '<div style="font-size:13px;font-weight:700;color:'+cl+'">'+msg+'</div>'
@@ -5945,7 +6061,7 @@ function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, p) {
     return '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
       +'<div style="background:'+hBg+';padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'
         +'<div><span style="font-size:13px;font-weight:800;color:'+hCl+'">'+fmtShiftDate(sh.date||(si===0?(((ex.workEntries||[])[0]||{}).date||permitValidFromDate||''):''),sh.shiftNo||si+1)+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">'+esc(sh.shift||'')+'</span></div>'
+        +'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">'+esc(shiftNameFor(sh, si===0?((ex.workEntries||[])[0]||null):null))+'</span></div>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(0,0,0,.08);color:'+hCl+'">'+esc(sh.shiftStatus||'Pending')+'</span>'
       +'</div>'
       +'<div style="padding:12px 14px">'
