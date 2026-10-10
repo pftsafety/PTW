@@ -3976,14 +3976,18 @@ function buildView(el, p, log, tests, scans, sigs) {
         <dl style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:13px">
           <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Job Description</dt><dd style="color:var(--navy-mid)">${esc(p.jobDescription)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Area / Site</dt><dd>${esc(p.workArea)||'—'}</dd></div>
-          ${ex.durationDays?`<div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Duration</dt><dd>${esc(ex.durationDays||'')} day(s)</dd></div>`:''}
-          ${(ex.durationFrom||ex.durationTo)?`<div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${esc(ex.durationFrom||'—')} → ${esc(ex.durationTo||'—')}</dd></div>`:''}
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)} · ${esc(p.originatorDept||'—')}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Nature of Permit</dt><dd>${esc(p.type)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Duration</dt><dd>${ex.durationDays?esc(ex.durationDays)+' day(s)':'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${(ex.durationFrom||ex.durationTo)?esc(ex.durationFrom||'—')+' → '+esc(ex.durationTo||'—'):'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)||'—'} · ${esc(p.originatorDept||'—')}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Permit Acceptor</dt><dd>${esc(p.acceptorName)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety In-Charge</dt><dd>${esc(p.safetyName)||'—'}</dd></div>
-          ${p.contractorDetails?`<div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor / Job Performer</dt><dd>${esc(p.contractorDetails)}</dd></div>`:''}
-          ${ex.contractorEmergency?`<div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor Emergency</dt><dd>${esc(ex.contractorEmergency)}</dd></div>`:''}
-          ${ex.engineeringEquipment?`<div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Engineering Equipment</dt><dd>${esc(ex.engineeringEquipment)}</dd></div>`:''}
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor / Job Performer Details</dt><dd>${esc(p.contractorDetails)||'—'}</dd></div>
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Other Contractors Working Simultaneously</dt><dd>${esc(ex.otherContractors)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor Emergency Contact No.</dt><dd>${esc(ex.contractorEmergency)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety Harness No.</dt><dd>${esc(ex.safetyHarnessNo)||'—'}</dd></div>
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Engineering Equipment Used at Site</dt><dd>${esc(ex.engineeringEquipment)||'—'}</dd></div>
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Additional Precautions</dt><dd>${esc(ex.additionalPrecautions)||'—'}</dd></div>
         </dl>
         ${sup.electrical||sup.excavation||sup.confinedSpace?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
@@ -4007,7 +4011,9 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">O₂ Level</dt><dd style="color:${ex.confinedSpace.o2Level&&parseFloat(ex.confinedSpace.o2Level)>=19.3&&parseFloat(ex.confinedSpace.o2Level)<=23.5?'var(--green)':'var(--red)'};font-weight:700">${ex.confinedSpace.o2Level?ex.confinedSpace.o2Level+'%':'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Gas Level (PPM)</dt><dd>${ex.confinedSpace.gasPPM||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Warning Signs</dt><dd>${ex.confinedSpace.warningSigns||'—'}</dd></div>
-          ${ex.confinedSpace.training?`<div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Training Details</dt><dd>${esc(ex.confinedSpace.training)}</dd></div>`:''}
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Engineering Equipment</dt><dd>${esc(ex.confinedSpace.equip)||'—'}</dd></div>
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Description of Work inside Confined Space</dt><dd>${esc(ex.confinedSpace.description)||'—'}</dd></div>
+          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;margin-bottom:2px">Training Details (Job Performer)</dt><dd>${esc(ex.confinedSpace.training)||'—'}</dd></div>
         </dl>
         <div style="margin-top:10px">
           <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Pre-Commencement Checks</div>
