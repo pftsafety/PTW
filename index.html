@@ -3818,10 +3818,12 @@ const SHIFT_BY_TIMES = {
   '22:00-06:00': 'Third Shift (22:00–06:00)',
   '09:15-17:15': 'General Shift (09:15–17:15)'
 };
+// Shift name without its clock range, e.g. "Second Shift (14:00–22:00)" -> "Second Shift"
+function shiftBaseName(name) { return (name || '').replace(/\s*\(.*?\)\s*$/, '').trim(); }
 function shiftNameFor(sh, entry) {
-  if (sh && sh.shift) return sh.shift;
-  if (entry && entry.shift) return entry.shift;
-  if (entry && entry.from && entry.to) return SHIFT_BY_TIMES[entry.from+'-'+entry.to] || (entry.from+' – '+entry.to);
+  if (sh && sh.shift) return shiftBaseName(sh.shift);
+  if (entry && entry.shift) return shiftBaseName(entry.shift);
+  if (entry && entry.from && entry.to) return shiftBaseName(SHIFT_BY_TIMES[entry.from+'-'+entry.to] || '');
   return '';
 }
 // "Valid from" = Shift 1 start time (not the permit's stored timestamp)
@@ -5297,7 +5299,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       const shiftCell = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">`
         + `<div style="font-size:7.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
         + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date, sh.shiftNo))}</div>`
-        + `<div style="font-size:7px;color:#444">${esc2(sh.shift||'')}</div>`
+        + `<div style="font-size:7px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
         + `<div style="font-size:7px;color:#444">Workers ack: ${sh.workerAckCount||0}/${sh.workerAckTotal||0}</div>`
         + `<div style="font-size:7.5px;font-weight:700;color:${cancelled?'#64748b':'#0f172a'}">${esc2(sh.shiftStatus||'')}</div></td>`;
       if (cancelled) {
@@ -5878,7 +5880,7 @@ async function initiateClosure() {
   if (_exNow) {
     const openShifts = (_exNow.shifts||[]).filter(s=>s.shiftStatus==='Active');
     if (openShifts.length) {
-      const labels = openShifts.map(s=>'Shift '+(s.shiftNo||'?')+' ('+(s.date||'')+' '+(s.shift||'')+')').join(', ');
+      const labels = openShifts.map(s=>'Shift '+(s.shiftNo||'?')+' ('+(s.date||'')+' '+shiftBaseName(s.shift||'')+')').join(', ');
       errEl.textContent = '❌ Cannot close — Work Stop not recorded for: '+labels+'. Job Performer must scan Work Stop in the Scanner app first.';
       errEl.style.display='block';
       return;
