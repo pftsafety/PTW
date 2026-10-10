@@ -1403,7 +1403,7 @@ tbody tr:last-child td { border-bottom:none; }
         </div>
         <div class="fg">
           <label class="field-label">Shift *</label>
-          <select id="shift-shift" class="field">
+          <select id="shift-shift" class="field" onchange="onShiftModalShiftChange()">
             <option value="">— Select Shift —</option>
             <option value="First Shift (06:00–14:00)">First Shift (06:00–14:00)</option>
             <option value="Second Shift (14:00–22:00)">Second Shift (14:00–22:00)</option>
@@ -1411,6 +1411,10 @@ tbody tr:last-child td { border-bottom:none; }
             <option value="General Shift (09:15–17:15)">General Shift (09:15–17:15)</option>
           </select>
         </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        <div class="fg"><label class="field-label">Work From *</label><input type="time" id="shift-from" class="field"></div>
+        <div class="fg"><label class="field-label">Work To *</label><input type="time" id="shift-to" class="field"></div>
       </div>
       <div class="fg" style="margin-bottom:12px">
         <label class="field-label">Remarks (optional)</label>
@@ -3821,15 +3825,24 @@ function shiftNameFor(sh, entry) {
   return '';
 }
 // "Valid from" = Shift 1 start time (not the permit's stored timestamp)
+// Shift 1 falls back to the first work entry; later shifts use their own stored fields.
+function shiftEntry(ex, si) { return si === 0 ? ((ex.workEntries || [])[0] || null) : null; }
+function shiftDateOf(sh, ex, si) { return sh.date || ((shiftEntry(ex, si) || {}).date) || ''; }
+function shiftWorkTime(sh, ex, si) {
+  const e = shiftEntry(ex, si) || {};
+  return { from: sh.workFrom || e.from || '', to: sh.workTo || e.to || '' };
+}
+function workTimeLabel(sh, ex, si) {
+  const w = shiftWorkTime(sh, ex, si);
+  return (w.from && w.to) ? (w.from + ' – ' + w.to) : '';
+}
+// "Valid from" = the requested start time (From hrs) on Shift 1's date
 function shiftStartDisplay(p, ex) {
-  const sh1   = (ex.shifts||[])[0] || {};
-  const entry = (ex.workEntries||[])[0] || {};
-  const name  = shiftNameFor(sh1, entry);
-  const m     = name.match(/(\d{2}:\d{2})\s*[–-]/);
-  const start = m ? m[1] : (entry.from || '');
-  const date  = sh1.date || entry.date || '';
-  if (date && start) {
-    const d = new Date(date + 'T' + start + ':00');
+  const sh1 = (ex.shifts || [])[0] || {};
+  const wt = shiftWorkTime(sh1, ex, 0);
+  const date = shiftDateOf(sh1, ex, 0);
+  if (date && wt.from) {
+    const d = new Date(date + 'T' + wt.from + ':00');
     if (!isNaN(d.getTime())) return fd(d);
   }
   return fd(p.validFrom);
@@ -4011,11 +4024,6 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)||'—'} · ${esc(p.originatorDept||'—')}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Permit Acceptor</dt><dd>${esc(p.acceptorName)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety In-Charge</dt><dd>${esc(p.safetyName)||'—'}</dd></div>
-          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor / Job Performer Details</dt><dd>${esc(p.contractorDetails)||'—'}</dd></div>
-          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Other Contractors Working Simultaneously</dt><dd>${esc(ex.otherContractors)||'—'}</dd></div>
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor Emergency Contact No.</dt><dd>${esc(ex.contractorEmergency)||'—'}</dd></div>
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety Harness No.</dt><dd>${esc(ex.safetyHarnessNo)||'—'}</dd></div>
-          <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Engineering Equipment Used at Site</dt><dd>${esc(ex.engineeringEquipment)||'—'}</dd></div>
         </dl>
         ${sup.electrical||sup.excavation||sup.confinedSpace?`
           <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border)">
@@ -4273,6 +4281,18 @@ function buildView(el, p, log, tests, scans, sigs) {
             <div>${ex.medicalCertRequired||'NA'}${ex.medicalCertDetails?' — '+esc(ex.medicalCertDetails):''}</div>
           </div>
         </div>
+      </div>
+
+      <!-- Contractors & Equipment -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">🏗</div><div class="fs-title">Contractors &amp; Equipment</div></div>
+        <dl style="display:grid;grid-template-columns:1fr;gap:10px;font-size:13px">
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor / Job Performer Details</dt><dd>${esc(p.contractorDetails)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Other Contractors Working Simultaneously</dt><dd>${esc(ex.otherContractors)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Contractor Emergency Contact No.</dt><dd>${esc(ex.contractorEmergency)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety Harness No.</dt><dd>${esc(ex.safetyHarnessNo)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Engineering Equipment Used at Site</dt><dd>${esc(ex.engineeringEquipment)||'—'}</dd></div>
+        </dl>
       </div>
 
       <!-- Additional Precautions -->
@@ -5953,7 +5973,7 @@ function renderApprovalWorkflowHorizontal(p, ex) {
 
   return '<div class="card">'
     + '<div class="form-section-header"><div class="fs-num">04</div><div class="fs-title">Approval Workflow'
-      + (cur ? ' — Shift '+(cur.shiftNo||'')+' ('+fmtShiftDate(cur.date,cur.shiftNo)+')' : '')
+      + (cur ? ' — Shift '+(cur.shiftNo||'')+' · '+fmtShiftDate(shiftDateOf(cur, ex, shifts.indexOf(cur)), cur.shiftNo)+(workTimeLabel(cur,ex,shifts.indexOf(cur))?' · Work '+workTimeLabel(cur,ex,shifts.indexOf(cur)):'')+' · '+esc(shiftNameFor(cur, shiftEntry(ex, shifts.indexOf(cur))))+'' : '')
     + '</div></div>'
     + '<div class="tl-h">' + stepsHtml + '</div>'
   + '</div>';
@@ -5977,12 +5997,12 @@ function renderQuickStatus(p, ex) {
   const msg = NEXT_MSG[cur.shiftStatus] || cur.shiftStatus || '';
   const bg = cur.shiftStatus==='Active' ? '#dbeafe' : cur.shiftStatus==='Completed' ? '#dcfce7' : '#fef3c7';
   const cl = cur.shiftStatus==='Active' ? '#1d4ed8' : cur.shiftStatus==='Completed' ? '#14532d' : '#92400e';
-  const dateLabel = fmtShiftDate(cur.date, idx+1);
+  const dateLabel = fmtShiftDate(shiftDateOf(cur, ex, idx), idx+1);
 
   return '<div class="card" style="background:'+bg+';border:1px solid '+cl+'33;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:0">'
     + '<div>'
       + '<div style="font-size:11px;font-weight:700;color:'+cl+';text-transform:uppercase;letter-spacing:.4px">Current Activity — Shift '+(idx+1)+' of '+total+'</div>'
-      + '<div style="font-size:15px;font-weight:800;color:'+cl+';margin-top:2px">'+esc(dateLabel)+' &nbsp;&middot;&nbsp; '+esc(shiftNameFor(cur, cur===shifts[0]?((ex.workEntries||[])[0]||null):null)||'—')+'</div>'
+      + '<div style="font-size:15px;font-weight:800;color:'+cl+';margin-top:2px">'+esc(dateLabel)+' &nbsp;&middot;&nbsp; '+esc(shiftNameFor(cur, shiftEntry(ex, idx))||'—')+(workTimeLabel(cur,ex,idx)?' &nbsp;&middot;&nbsp; Work '+esc(workTimeLabel(cur,ex,idx)):'')+'</div>'
       + '<div style="font-size:12px;color:'+cl+';margin-top:2px">👥 '+workerCount+' worker'+(workerCount===1?'':'s')+'</div>'
     + '</div>'
     + '<div style="font-size:13px;font-weight:700;color:'+cl+'">'+msg+'</div>'
@@ -6060,8 +6080,8 @@ function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, p) {
 
     return '<div style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)">'
       +'<div style="background:'+hBg+';padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">'
-        +'<div><span style="font-size:13px;font-weight:800;color:'+hCl+'">'+fmtShiftDate(sh.date||(si===0?(((ex.workEntries||[])[0]||{}).date||permitValidFromDate||''):''),sh.shiftNo||si+1)+'</span>'
-        +'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">'+esc(shiftNameFor(sh, si===0?((ex.workEntries||[])[0]||null):null))+'</span></div>'
+        +'<div><span style="font-size:13px;font-weight:800;color:'+hCl+'">'+fmtShiftDate(shiftDateOf(sh, ex, si)||permitValidFromDate||'',sh.shiftNo||si+1)+'</span>'
+        +'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">'+esc(shiftNameFor(sh, shiftEntry(ex,si)))+'</span>'+(workTimeLabel(sh,ex,si)?'<span style="font-size:12px;font-weight:600;color:'+hCl+';margin-left:10px">Work '+esc(workTimeLabel(sh,ex,si))+'</span>':'')+'</div>'
         +'<span style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:99px;background:rgba(0,0,0,.08);color:'+hCl+'">'+esc(sh.shiftStatus||'Pending')+'</span>'
       +'</div>'
       +'<div style="padding:12px 14px">'
@@ -6194,11 +6214,19 @@ async function cancelPendingShiftPrompt(permitNo) {
   } catch(e) { load(false); toast(e.message,'err'); }
 }
 
+function onShiftModalShiftChange() {
+  const v = document.getElementById('shift-shift').value || '';
+  const m = v.match(/(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/);
+  if (m) { document.getElementById('shift-from').value = m[1]; document.getElementById('shift-to').value = m[2]; }
+}
+
 async function openAddShiftModal(permitNo) {
   _shiftWorkers = [];
   document.getElementById('shift-permit-no').value = permitNo;
   document.getElementById('shift-date').value = new Date().toISOString().split('T')[0];
   document.getElementById('shift-shift').value = '';
+  document.getElementById('shift-from').value = '';
+  document.getElementById('shift-to').value = '';
   document.getElementById('shift-remarks').value = '';
   document.getElementById('shift-tbt-by').value = '';
   resetShiftTbtChips();
@@ -6292,6 +6320,8 @@ function saveShift() {
   errEl.style.display='none';
   if (!date)     { errEl.textContent='Select a date.';  errEl.style.display='block'; return; }
   if (!shift)    { errEl.textContent='Select a shift.'; errEl.style.display='block'; return; }
+  const wFrom = document.getElementById('shift-from').value, wTo = document.getElementById('shift-to').value;
+  if (!wFrom || !wTo) { errEl.textContent='Enter the work From and To times.'; errEl.style.display='block'; return; }
   if (!_shiftWorkers.length) { errEl.textContent='Add at least one worker for this shift.'; errEl.style.display='block'; return; }
   if (!tbtBy)    { errEl.textContent='Tool Box Talk — Conducted By is required.'; errEl.style.display='block'; return; }
   if (_systemSettings && _systemSettings.tbtUploadEnabled && _systemSettings.tbtUploadRequired && !tbtFile) {
@@ -6309,7 +6339,7 @@ function saveShift() {
     async () => {
       load(true,'Adding shift…');
       try {
-        const res = await api('addPermitShift',{ permitNo:no, date, shift, remarks, workers:_shiftWorkers, tbt, tbtBy });
+        const res = await api('addPermitShift',{ permitNo:no, date, shift, remarks, workers:_shiftWorkers, tbt, tbtBy, workFrom:wFrom, workTo:wTo });
         if (tbtFile) {
           try {
             const b64 = await fileToBase64(tbtFile);
