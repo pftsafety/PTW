@@ -1,4 +1,4 @@
-const CACHE = 'hll-scanner-v3';
+const CACHE = 'hll-scanner-v4';
 const ASSETS = [
   './scanner.html',
   './scanner-manifest.json',
