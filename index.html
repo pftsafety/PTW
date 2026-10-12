@@ -5877,7 +5877,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       + `<div style="font-size:8px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>`
       + `<div style="font-size:8px;color:#444;margin-bottom:3px">${sub||''}</div>${img}`
       + `<div style="font-size:8px;font-weight:700">${esc2(name||'')}</div>`
-      + `<div style="font-size:7px;color:#555">${time ? fmtDT(time) : ''}</div></td>`;
+      + `<div style="font-size:7.5px;color:#555">${time ? fmtDT(time) : ''}</div></td>`;
   };
 
   // ── Extra print sections: the details the permit view shows ──
@@ -5910,6 +5910,12 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     + `</table>` : '';
   const tbtKeys = TBT.map(t => t.k);
   // Shift-wise Tool Box Talk: one row per question (full text), one column per shift
+  // Section 7: workers for every shift (falls back to the work entries for older permits)
+  const sec7 = (ex.shifts || []).length
+    ? ex.shifts.flatMap((sh, i) => (sh.workers || []).map(w => ({
+        name: w.name, company: w.company || w.contractor || '', certNo: w.certNo || '',
+        date: fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1) + (shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) ? ' · ' + shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) : ''), time: '' })))
+    : (ex.workEntries || []).flatMap((e, i) => (e.workers || []).map(w => ({ name: w.name, company: w.company || '', certNo: w.certNo || '', date: fmtShiftDate(e.date, i+1), time: '' })));
   const shiftCols = (ex.shifts || []).map((sh, i) => ({ sh, i }));
   const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Shift-wise Tool Box Talk (Yes / No / NA)</td></tr>`
     + pBox(`<table style="width:100%;border-collapse:collapse;font-size:7.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
@@ -5948,7 +5954,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       : '<div style="height:34px;border-bottom:1px dotted #999;margin:4px 0"></div>';
     return `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">${img}`
       + `<div style="font-size:7.5px;font-weight:700">${esc2(name||'')}</div>`
-      + `<div style="font-size:7px;color:#555">${fmtDT(time)}</div></td>`;
+      + `<div style="font-size:7.5px;color:#555">${fmtDT(time)}</div></td>`;
   };
   const shiftApprovalTable = (shifts) => {
     const head = ['Shift','Originator','Acceptor','Safety','Duty Officer','Start / Stop'];
@@ -5959,9 +5965,9 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       const shiftCell = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">`
         + `<div style="font-size:7.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
         + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date, sh.shiftNo))}</div>`
-        + `<div style="font-size:7px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
-        + `<div style="font-size:7px;color:#444">Workers ack: ${sh.workerAckCount||0}/${sh.workerAckTotal||0}</div>`
-        + `<div style="font-size:7.5px;font-weight:700;color:${cancelled?'#64748b':'#0f172a'}">${esc2(sh.shiftStatus||'')}</div><div style="font-size:7px;margin-top:3px">${(sh.workers||[]).map(w => esc2(w.name) + (w.acked ? ' ✓' : '')).join('<br>')}</div></td>`;
+        + `<div style="font-size:7.5px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
+        + `<div style="font-size:7.5px;color:#444">Workers ack: ${sh.workerAckCount||0}/${sh.workerAckTotal||0}</div>`
+        + `<div style="font-size:7.5px;font-weight:700;color:${cancelled?'#64748b':'#0f172a'}">${esc2(sh.shiftStatus||'')}</div><div style="font-size:7.5px;margin-top:3px">${(sh.workers||[]).map(w => esc2(w.name) + (w.acked ? ' ✓' : '')).join('<br>')}</div></td>`;
       if (cancelled) {
         return `<tr>${shiftCell}<td colspan="5" style="border:1px solid #000;padding:3px 4px;font-size:7.5px;color:#475569">`
           + `Cancelled by ${esc2(sh.cancelledBy||'—')} on ${fmtDT(sh.cancelledAt)} — ${esc2(sh.cancelReason||'No reason given')}. No work carried out under this shift.</td></tr>`;
@@ -5999,17 +6005,17 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
         : `<div style="height:42px;border-bottom:1px dotted #999;margin:4px 0"></div>`
       }
       ${s ? `<div style="font-size:8px;font-weight:700">${esc2(s.name||'')}</div>
-             <div style="font-size:7px;color:#555">${fmtDT(s.time)}</div>
+             <div style="font-size:7.5px;color:#555">${fmtDT(s.time)}</div>
              <div style="font-size:8px;font-weight:700;color:${s.action==='Approved'||s.action==='Signed'?'green':'#c00'}">${esc2(s.action||'Signed')}</div>
-             ${s.comments?`<div style="font-size:7px;color:#555;font-style:italic;margin-top:1px">${esc2(s.comments)}</div>`:''}`
-           : '<div style="font-size:7px;color:#999">Pending</div>'}
+             ${s.comments?`<div style="font-size:7.5px;color:#555;font-style:italic;margin-top:1px">${esc2(s.comments)}</div>`:''}`
+           : '<div style="font-size:7.5px;color:#999">Pending</div>'}
     </td>`;
   };
 
   // Check helpers
-  const hazardsList = (window.HAZARDS)||[];
-  const ppeList     = (window.PPE_CONTROLS)||[];
-  const tbtList     = (window.TBT)||[];
+  const hazardsList = (typeof HAZARDS!=='undefined'?HAZARDS:[]);
+  const ppeList     = (typeof PPE_CONTROLS!=='undefined'?PPE_CONTROLS:[]);
+  const tbtList     = (typeof TBT!=='undefined'?TBT:[]);
 
   // Build hazard checkboxes in 3-col table
   const hazardRows = () => {
@@ -6071,16 +6077,16 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
 <title>PTW — ${esc2(p.permitNo)}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:Arial,Helvetica,sans-serif; font-size:9px; color:#000; background:#fff; }
+  body { font-family:Arial,Helvetica,sans-serif; font-size:8.5px; color:#000; background:#fff; }
   .page { width:210mm; min-height:297mm; padding:8mm 8mm; margin:0 auto; }
   table { border-collapse:collapse; width:100%; }
   td, th { border:1px solid #000; padding:3px 5px; font-size:8.5px; vertical-align:top; }
   .hdr-main { font-size:13px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
   .hdr-sub { font-size:8px; text-align:center; }
-  .sec-head { background:#d0d0d0; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:3px 5px; }
+  .sec-head { background:#d0d0d0; font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:3px 5px; }
   .field-label { font-size:7.5px; font-weight:700; text-transform:uppercase; color:#333; }
-  .field-val { font-size:9px; min-height:14px; }
-  .yn-box { display:inline-block; border:1px solid #000; padding:0 5px; font-size:9px; font-weight:700; }
+  .field-val { font-size:8.5px; min-height:14px; }
+  .yn-box { display:inline-block; border:1px solid #000; padding:0 5px; font-size:8.5px; font-weight:700; }
   @page { size:A4; margin:6mm; }
   @media print { body{margin:0;} }
 </style>
@@ -6095,7 +6101,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   <tr>
     <td rowspan="2" style="width:18%;text-align:center;padding:6px;font-size:10px;font-weight:900;border:1px solid #000">
       HLL LIFECARE<br>LIMITED<br>
-      <div style="font-size:7px;font-weight:400">Peroorkada Factory<br>Thiruvananthapuram</div>
+      <div style="font-size:7.5px;font-weight:400">Peroorkada Factory<br>Thiruvananthapuram</div>
     </td>
     <td colspan="3" style="text-align:center;border:1px solid #000;padding:4px">
       <div class="hdr-main">PERMIT TO WORK</div>
@@ -6105,7 +6111,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       <div class="field-label">Permit No.</div>
       <div style="font-size:12px;font-weight:900;margin:2px 0">${esc2(p.permitNo)}</div>
       <div class="field-label" style="margin-top:4px">Status</div>
-      <div style="font-size:9px;font-weight:700">${esc2(p.status)}</div>
+      <div style="font-size:8.5px;font-weight:700">${esc2(p.status)}</div>
     </td>
   </tr>
   <tr>
@@ -6201,7 +6207,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   </tr>
 </table>
 
-${detailsBlock}${csBlock}${exBlock}
+${csBlock}${exBlock}
 <!-- ════════ SECTION 2: HAZARDS ════════ -->
 <table style="margin-top:3px">
   <tr><td class="sec-head" colspan="2">Section 2: Hazards of Work (Tick all applicable)</td></tr>
@@ -6300,7 +6306,7 @@ ${tbtShiftBlock}
     <th style="background:#eee;width:22%">Certificate / ID No.</th>
     <th style="background:#eee;width:16%">Date &amp; Shift</th>
   </tr>
-  ${allWorkers.length ? allWorkers.map((w,i)=>`
+  ${sec7.length ? sec7.map((w,i)=>`
   <tr>
     <td style="text-align:center">${i+1}</td>
     <td>${esc2(w.name||'')}</td>
@@ -6346,7 +6352,7 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   </td></tr>
   ${ex.dailyEntries.map(de=>`
   <tr style="background:#f0f4ff">
-    <td colspan="6" style="border:1px solid #000;padding:4px 6px;font-size:9px">
+    <td colspan="6" style="border:1px solid #000;padding:4px 6px;font-size:8.5px">
       <strong>Day ${de.dayNo} — ${de.dateLabel||de.date}</strong>
       &nbsp;|&nbsp; Shifts: ${(de.shiftLabels||de.shifts||[]).join(', ')}
       &nbsp;|&nbsp; Status: <strong>${de.status}</strong>
@@ -6456,15 +6462,7 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   </tr>
 </table>
 
-<!-- ════════ FOOTER ════════ -->
-<table style="margin-top:4px">
-  <tr>
-    <td style="border:1px solid #000;padding:3px;font-size:7.5px;text-align:center;width:25%">White Copy — Acceptor Department</td>
-    <td style="border:1px solid #000;padding:3px;font-size:7.5px;text-align:center;width:25%">Yellow Copy — Safety Department (Daily)</td>
-    <td style="border:1px solid #000;padding:3px;font-size:7.5px;text-align:center;width:25%">Printed: ${new Date().toLocaleString('en-IN')}</td>
-    <td style="border:1px solid #000;padding:3px;font-size:7.5px;text-align:center;width:25%">Approved by: Gokul V Babu, Safety Officer</td>
-  </tr>
-</table>
+
 
 </div>
 
