@@ -4680,6 +4680,38 @@ function buildView(el, p, log, tests, scans, sigs) {
 
       
 
+      <!-- Audit Trail (collapsible, left column) -->
+      <details class="card" style="padding:0">
+        <summary style="cursor:pointer;padding:16px 18px;font-weight:700;font-size:13px;color:var(--navy);list-style:none;display:flex;align-items:center;gap:8px">📋 Audit Trail <span style="font-weight:500;color:var(--slate);font-size:12px">(tap to show / hide)</span></summary>
+        <div style="padding:0 18px 18px">
+        ${auditTable(log, sigMap, sigs)}
+
+        <!-- Worker Scans -->
+        ${scans.length?`<div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
+
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#f8fafc">
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
+            </tr>
+            ${scans.map(s=>`<tr>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
+            </tr>`).join('')}
+          </table>
+        </div>`:''}
+
+      </div>
+      </details>
+
       <!-- SECTION 8: Closure Panel (shown when Close Permit is clicked) -->
       <div id="sec8-closure-panel" style="display:none;border:2px solid var(--green);border-radius:var(--radius);overflow:hidden;margin-top:2px">
         <div style="background:linear-gradient(90deg,#0f172a,#14532d);color:#fff;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -4779,35 +4811,6 @@ function buildView(el, p, log, tests, scans, sigs) {
         <div style="font-size:13px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm);white-space:pre-wrap">${esc(ex.additionalPrecautions)||'—'}</div>
       </div>
 
-      <!-- Audit Trail -->
-      <div class="card">
-        <div class="form-section-header"><div class="fs-num">📋</div><div class="fs-title">Audit Trail</div></div>
-        ${auditTable(log, sigMap, sigs)}
-
-        <!-- Worker Scans -->
-        ${scans.length?`<div style="margin-top:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
-
-
-          <table style="width:100%;border-collapse:collapse;font-size:12px">
-            <tr style="background:#f8fafc">
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
-            </tr>
-            ${scans.map(s=>`<tr>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
-            </tr>`).join('')}
-          </table>
-        </div>`:''}
-
-      </div>
 
 
     </div>
