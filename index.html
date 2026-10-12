@@ -4496,12 +4496,12 @@ function buildView(el, p, log, tests, scans, sigs) {
       <div class="ph-title">${p.permitNo}</div>
       <div class="ph-sub">${esc(p.type)||'—'} · ${sbadge(p.status)} · Valid: ${shiftStartDisplay(p, ex)} → ${fd(p.validTo)}</div>
     </div>
-    <div class="btn-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <div class="btn-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
       <button class="btn btn-ghost" data-on-click="navBackFromPermit()">← Back</button>
       <button class="btn btn-ghost" data-on-click="loadView(&quot;${p.permitNo}&quot;)">⟳ Refresh</button>
+      ${acts||'<span style="font-size:12px;color:var(--slate)">No action needed from you at this stage.</span>'}
     </div>
   </div>
-  <div class="action-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm)">${acts||'<span style="font-size:12px;color:var(--slate)">No action needed from you at this stage.</span>'}</div>
   ${expAlert}
 
   
