@@ -179,6 +179,10 @@ body::before{
   box-shadow:0 3px 14px rgba(37,99,235,.4);transform:scale(1.04);
 }
 .action-chip:active{transform:scale(.96)}
+.action-chip.primary-action{
+  width:100%;padding:18px 16px;font-size:19px;font-weight:800;border-radius:16px;text-align:center;
+}
+
 
 /* QR reader */
 .qr-wrap{
@@ -305,6 +309,16 @@ body::before{
   animation: shake .4s ease both;
 }
 
+
+/* ── Motion & feedback ── */
+.hdr { position: relative; }
+.sync-dot { position:absolute; top:50%; right:16px; transform:translateY(-50%); width:10px; height:10px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2); }
+.sync-dot.pending { background:#f59e0b; box-shadow:0 0 0 3px rgba(245,158,11,.25); animation: syncPulse 1.2s ease-in-out infinite; }
+.sync-dot.offline { background:#94a3b8; box-shadow:none; }
+@keyframes syncPulse { 0%,100% { opacity:1; } 50% { opacity:.35; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
 </style>
 </head>
 <body>
@@ -317,6 +331,7 @@ body::before{
 
 <!-- Header -->
 <div class="hdr">
+  <span id="sync-dot" class="sync-dot" title="All synced"></span>
   <div class="hdr-logo">HLL</div>
   <div>
     <div class="hdr-title">Job Performer Scanner</div>
@@ -339,8 +354,8 @@ body::before{
     <div class="install-banner-title">Install Scanner App</div>
     <div class="install-banner-body">Add to Home Screen for instant camera access — no browser needed.</div>
   </div>
-  <button class="install-btn" id="install-btn" onclick="triggerInstall()">Install</button>
-  <button class="dismiss-btn" onclick="dismissInstall()">✕</button>
+  <button class="install-btn" id="install-btn" data-on-click="triggerInstall()">Install</button>
+  <button class="dismiss-btn" data-on-click="dismissInstall()">✕</button>
 </div>
 
 <div class="page">
@@ -352,7 +367,7 @@ body::before{
         <div class="step-badge">1</div>
         <span class="card-title">Select Permit</span>
       </div>
-      <button class="back-btn" onclick="loadPermitList()">🔄</button>
+      <button class="back-btn" data-on-click="loadPermitList()">🔄</button>
     </div>
     <div class="card-body">
       <!-- Manual permit number search -->
@@ -361,10 +376,10 @@ body::before{
           <span style="padding:0 10px;font-size:15px;color:var(--text-3)">🔍</span>
           <input type="text" id="permit-search-input" placeholder="Enter permit no. e.g. PTW-2026-0001"
             style="flex:1;background:transparent;border:none;outline:none;color:var(--text);font-size:14px;padding:11px 8px 11px 0;font-family:inherit"
-            oninput="this.value=this.value.toUpperCase()"
-            onkeydown="if(event.key==='Enter')searchPermitDirect()">
+            data-on-input="upperCase(this)"
+            data-on-keydown="if(event.key==='Enter')searchPermitDirect()">
         </div>
-        <button onclick="searchPermitDirect()" style="background:var(--blue-l);color:#fff;border:none;padding:11px 16px;border-radius:var(--r-sm);cursor:pointer;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(59,130,246,.35)">Go →</button>
+        <button data-on-click="searchPermitDirect()" style="background:var(--blue-l);color:#fff;border:none;padding:11px 16px;border-radius:var(--r-sm);cursor:pointer;font-size:14px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(59,130,246,.35)">Go →</button>
       </div>
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
         <div style="flex:1;height:1px;background:var(--border)"></div>
@@ -388,13 +403,15 @@ body::before{
         <div class="step-badge">2</div>
         <span class="card-title" id="step2-title">Select Worker</span>
       </div>
-      <button class="back-btn" onclick="goStep(1)">← Back</button>
+      <button class="back-btn" data-on-click="goStep(1)">← Back</button>
     </div>
     <div class="card-body">
       <div id="permit-info" class="info-row" style="margin-bottom:12px"></div>
+      <div id="queue-badge" style="display:none;margin-bottom:10px;padding:8px 12px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);border-radius:10px;font-size:12px;color:#fde68a"></div>
       <div class="section-label">Action</div>
       <div class="chips-row" id="action-chips"></div>
       <div class="section-label">Tap worker to scan their QR</div>
+      <input type="search" id="worker-search" placeholder="Search name or certificate no." data-on-input="renderWorkerList()" style="width:100%;margin-bottom:10px;padding:10px 12px;border-radius:10px;border:1.5px solid var(--border);background:rgba(255,255,255,.06);color:var(--text);font-size:14px">
       <div id="worker-list"></div>
     </div>
   </div>
@@ -406,7 +423,7 @@ body::before{
         <div class="step-badge">3</div>
         <span class="card-title" id="step3-title">Scan Worker QR</span>
       </div>
-      <button class="back-btn" onclick="goStep(2)">← Back</button>
+      <button class="back-btn" data-on-click="goStep(2)">← Back</button>
     </div>
     <div class="card-body">
       <div id="current-worker-label" class="info-row" style="margin-bottom:14px"></div>
@@ -431,7 +448,7 @@ body::before{
 
       <!-- File/capture fallback -->
       <div id="scan-file-wrap" style="display:none">
-        <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none" onchange="processQRImage(this)">
+        <input type="file" id="qr-file-input" accept="image/*" capture="environment" style="display:none" data-on-change="processQRImage(this)">
         <label for="qr-file-input" style="display:flex;align-items:center;justify-content:center;gap:14px;padding:22px;background:linear-gradient(135deg,rgba(79,142,247,.3),rgba(37,99,235,.4));border:1.5px solid rgba(79,142,247,.4);color:#fff;border-radius:16px;cursor:pointer;font-size:16px;font-weight:700;width:100%;margin-bottom:12px;box-shadow:0 4px 16px rgba(79,142,247,.25)">
           <span style="font-size:32px">📷</span><span>Open Camera &amp; Scan QR</span>
         </label>
@@ -469,8 +486,8 @@ body::before{
         </label>
       </div>
       <div class="btn-row">
-        <button class="btn btn-ghost" onclick="goStep(3)">← Rescan</button>
-        <button class="btn btn-primary" onclick="confirmScan()">✓ Record Sign</button>
+        <button class="btn btn-ghost" data-on-click="goStep(3)">← Rescan</button>
+        <button class="btn btn-primary" data-on-click="confirmScan()">✓ Record Sign</button>
       </div>
       <div id="err4" class="err-box"></div>
     </div>
@@ -482,7 +499,7 @@ body::before{
     <div class="success-title" id="suc-title">Recorded!</div>
     <div class="success-sub" id="suc-sub"></div>
     <div class="success-progress" id="suc-progress" style="display:none"></div>
-    <button class="btn btn-green" onclick="resetToStep2()" style="margin-top:4px">Scan Next Worker →</button>
+    <button class="btn btn-green" data-on-click="resetToStep2()" style="margin-top:4px">Scan Next Worker →</button>
   </div>
 
 </div><!-- .page -->
@@ -502,19 +519,110 @@ let _permit = null, _action = 'Acknowledgement', _workerRec = null, _targetWorke
 let _qrScanner = null;
 
 // ── Utilities ─────────────────────────────────────────────
+function shiftBase(n){ return (n||'').replace(/\s*\(.*?\)\s*$/,'').trim(); }
 function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function showErr(id, msg) { const el=document.getElementById(id); if(el){ el.textContent=msg; el.style.display='block'; el.style.animation='none'; requestAnimationFrame(()=>el.style.animation=''); } }
+function showErr(id, msg) { msg = friendlyScanErr(msg); const el=document.getElementById(id); if(el){ el.textContent=msg; el.style.display='block'; el.style.animation='none'; requestAnimationFrame(()=>el.style.animation=''); } }
 function hideErr(id) { const el=document.getElementById(id); if(el) el.style.display='none'; }
 function load(on, txt) { const el=document.getElementById('loader'); if(el) el.classList.toggle('show',on); const tEl=document.getElementById('loader-text'); if(tEl) tEl.textContent=txt||'Loading…'; }
 
 // ── API ────────────────────────────────────────────────────
-async function api(action, payload={}) {
+async function apiRaw(action, payload={}) {
   const body = JSON.stringify({ action, payload, sessionToken:'' });
   const resp = await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'text/plain'}, body });
   if (!resp.ok) throw new Error('Server error '+resp.status);
   const json = await resp.json();
   if (!json.ok) throw new Error(json.error || 'Unknown error');
   return json.result !== undefined ? json.result : json.data;
+}
+
+// ── Offline-safe writes: queue on this phone when there is no connection ──
+const WRITE_ACTIONS = ['recordWorkerAck','jobPerformerSign'];
+function queueLoad() { try { return JSON.parse(localStorage.getItem('ptw_queue')||'[]'); } catch(e) { return []; } }
+function queueSave(q) { try { localStorage.setItem('ptw_queue', JSON.stringify(q)); } catch(e) {} }
+function updateQueueBadge() {
+  const n = queueLoad().length;
+  const b = document.getElementById('queue-badge');
+  if (b) { b.style.display = n ? 'block' : 'none'; b.textContent = 'Saved on this phone — ' + n + ' pending sync'; }
+  const d = document.getElementById('sync-dot');
+  if (d) {
+    d.className = 'sync-dot' + (!navigator.onLine ? ' offline' : (n ? ' pending' : ''));
+    d.title = !navigator.onLine ? 'Offline' : (n ? n + ' scans waiting to sync' : 'All synced');
+  }
+}
+window.addEventListener('online', updateQueueBadge);
+window.addEventListener('offline', updateQueueBadge);
+
+async function api(action, payload={}) {
+  window._lastQueued = false;
+  try { return await apiRaw(action, payload); }
+  catch (e) {
+    const offline = (e instanceof TypeError) || /Failed to fetch|NetworkError|Load failed/i.test(e.message||'');
+    if (WRITE_ACTIONS.includes(action) && offline) {
+      const q = queueLoad(); q.push({ action, payload, at: new Date().toISOString() }); queueSave(q);
+      window._lastQueued = true; updateQueueBadge();
+      return { queued: true };
+    }
+    throw e;
+  }
+}
+async function flushQueue() {
+  if (!navigator.onLine) return;
+  const q = queueLoad(); if (!q.length) return;
+  const rest = [];
+  for (const item of q) {
+    try { await apiRaw(item.action, item.payload); }
+    catch (e) {
+      const offline = (e instanceof TypeError) || /Failed to fetch|NetworkError|Load failed/i.test(e.message||'');
+      if (offline) rest.push(item);   // keep it; the server rejected others, so they are dropped
+    }
+  }
+  queueSave(rest); updateQueueBadge();
+}
+window.addEventListener('online', flushQueue);
+setInterval(flushQueue, 30000);
+
+// Full-screen confirmation for Work Start / Work Stop
+function bigConfirm(title, sub) {
+  const o = document.createElement('div');
+  o.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(5,150,105,.96);display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;text-align:center;padding:24px;cursor:pointer';
+  o.innerHTML = '<div style="font-size:72px;line-height:1">✓</div><div style="font-size:30px;font-weight:800;margin-top:12px">'+esc(title)+'</div><div style="font-size:16px;opacity:.9;margin-top:8px">'+esc(sub)+'</div><div style="font-size:12px;opacity:.7;margin-top:18px">Tap to dismiss</div>';
+  o.onclick = () => o.remove();
+  document.body.appendChild(o);
+  setTimeout(() => o.remove(), 3000);
+  alertCue(title === 'Work Started' ? 'start' : 'stop');
+}
+// Sound and vibration so workers know the scan worked even when not looking at the screen
+function alertCue(kind) {
+  try { if (navigator.vibrate) navigator.vibrate(kind === 'start' ? [80,40,80,40,80] : [250]); } catch (e) {}
+  try {
+    const A = window.AudioContext || window.webkitAudioContext; if (!A) return;
+    const ctx = window._actx || (window._actx = new A());
+    if (ctx.state === 'suspended') ctx.resume();
+    const tone = (f, at, ms) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.value = f; o.connect(g); g.connect(ctx.destination);
+      g.gain.setValueAtTime(0.18, ctx.currentTime + at);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + at + ms / 1000);
+      o.start(ctx.currentTime + at); o.stop(ctx.currentTime + at + ms / 1000 + 0.02);
+    };
+    if (kind === 'start') { tone(880, 0, 130); tone(1174, 0.16, 180); }
+    else { tone(330, 0, 380); }
+  } catch (e) {}
+}
+
+
+// Plain-language scanner messages
+const SCAN_FRIENDLY = [
+  [/does not match any worker/i, 'This certificate is not on the worker list for this shift. Ask the Originator to add the worker.'],
+  [/not in .*Pending Worker Acknowledgement/i, 'Worker acknowledgement is not open for this permit right now.'],
+  [/Induction expired/i, "This worker's induction has expired. Renew the induction before work starts."],
+  [/not Active/i, 'The permit is not active yet, so work cannot be started or stopped.'],
+  [/Failed to fetch|NetworkError|Load failed/i, 'No connection. The scan will be saved on this phone and sent when you are back online.']
+];
+function friendlyScanErr(msg) {
+  msg = String(msg||'');
+  for (const [re, txt] of SCAN_FRIENDLY) if (re.test(msg)) return txt;
+  return msg;
 }
 
 // ── Step navigation ────────────────────────────────────────
@@ -565,7 +673,7 @@ async function loadPermitList() {
     }
     const statusColors = { Active:'#22d3a0', 'Pending Worker Acknowledgement':'#fbbf24', 'Pending Acceptor':'#a78bfa', 'Pending Safety':'#60a5fa' };
     el.innerHTML = permits.map((p,i) => `
-      <div class="permit-item" style="animation-delay:${i*0.05}s" onclick="selectPermit(${JSON.stringify(p).replace(/"/g,'&quot;')})">
+      <div class="permit-item" style="animation-delay:${i*0.05}s" data-on-click="selectPermit(${JSON.stringify(p).replace(/"/g,'&quot;')})">
         <div class="permit-icon">📋</div>
         <div style="flex:1;min-width:0">
           <div class="permit-no">${esc(p.permitNo)}</div>
@@ -611,7 +719,7 @@ function renderScannerPermitDetails(p, ex) {
         + '</div>';
     }).join('') || '<div style="font-size:11px;color:rgba(255,255,255,.4);padding:4px 0">No workers</div>';
     return '<div style="margin-top:8px">'
-      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase">Shift '+(sh.shiftNo||si+1)+' — '+esc(sh.date||'')+' '+esc(sh.shift||'')+'</div>'
+      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase">Shift '+(sh.shiftNo||si+1)+' — '+esc(sh.date||'')+' '+esc(shiftBase(sh.shift))+'</div>'
       + rows
       + '</div>';
   }).join('') || '<div style="font-size:11px;color:rgba(255,255,255,.4)">No shift data</div>';
@@ -636,6 +744,11 @@ function renderStep2() {
   // Permit info
   const fmtDate = d => { try{return d?new Date(d).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'—';}catch(e){return d||'—';} };
   const currentShift = (ex.shifts||[]).find(s=>s.shiftId===ex.currentShiftId) || (ex.shifts||[]).slice(-1)[0] || null;
+  const _we0 = (ex.workEntries||[])[0] || {};
+  const _isFirst = currentShift && currentShift === (ex.shifts||[])[0];
+  const _wFrom = currentShift ? (currentShift.workFrom || (_isFirst ? _we0.from : '') || '') : '';
+  const _wTo   = currentShift ? (currentShift.workTo   || (_isFirst ? _we0.to   : '') || '') : '';
+  const _wDate = currentShift ? (currentShift.date || (_isFirst ? _we0.date : '') || '') : '';
   document.getElementById('permit-info').innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px">
       <div>
@@ -653,8 +766,8 @@ function renderStep2() {
     </div>
     ${currentShift ? `<div style="margin-top:8px;padding:8px 10px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:10px">
       <div class="info-label">Current Shift</div>
-      <div style="font-size:13px;font-weight:700;color:var(--blue-ll)">Shift ${currentShift.shiftNo||'1'} · ${esc(currentShift.date||'')} ${esc(currentShift.shift||'')}</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">${(currentShift.workerAckCount||0)}/${(currentShift.workerAckTotal||0)} workers acked · ${esc(currentShift.shiftStatus||'')}</div>
+      <div style="font-size:13px;font-weight:700;color:var(--blue-ll)">Shift ${currentShift.shiftNo||'1'} · ${esc(_wDate)} · ${esc(shiftBase(currentShift.shift))}${_wFrom&&_wTo?' · Work '+esc(_wFrom)+' – '+esc(_wTo):''}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:2px">${(currentShift.workerAckCount||0)}/${(currentShift.workerAckTotal||0)} workers acked · ${esc(currentShift.shiftStatus||'')}${_wTo?' · <strong style="color:#fca5a5">Scheduled end '+esc(_wTo)+'</strong>':''}</div>
     </div>` : ''}
     ${p.jobDescription?`<div style="margin-top:6px"><div class="info-label">Job Description</div><div style="font-size:12px;color:rgba(255,255,255,.65);margin-top:1px;line-height:1.5">${esc(p.jobDescription.slice(0,120))}${p.jobDescription.length>120?'…':''}</div></div>`:''}
     ${renderScannerPermitDetails(p, ex)}`;
@@ -700,7 +813,7 @@ function renderStep2() {
   }
   _action = actions[0].id;
   document.getElementById('action-chips').innerHTML = actions.map(a =>
-    `<button class="action-chip${a.id===_action?' active':''}" onclick="setAction('${a.id}',this)">${esc(a.label)}</button>`
+    `<button class="action-chip${a.id===_action?' active':''}${(a.id==='Start'||a.id==='Stop')?' primary-action':''}" data-on-click="setAction('${a.id}',this)">${esc(a.label)}</button>`
   ).join('');
 
   renderWorkerList();
@@ -751,9 +864,12 @@ function renderWorkerList() {
   if (!workers.length) { el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.4);font-size:14px;padding:20px">No workers found in this permit.<br><span style="font-size:11px;opacity:.6">Ensure workers were added in Section 7.</span></div>'; return; }
 
   const colors = ['#4f8ef7','#a78bfa','#22d3a0','#fbbf24','#f87171','#60a5fa'];
+  const _wq = ((document.getElementById('worker-search')||{}).value||'').trim().toLowerCase();
+  if (_wq) workers = workers.filter(w => [w.name,w.certNo,w.company,w.contractor].some(x => x && String(x).toLowerCase().includes(_wq)));
+  if (!workers.length && _wq) { el.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,.4);font-size:14px;padding:16px">No worker matches "'+esc(_wq)+'"</div>'; el._workers = []; return; }
   el.innerHTML = workers.map((w,i) => {
     const acked = _isDailyMode ? w.acked : (ex.ackedWorkers||[]).includes(w.certNo||w.name);
-    return `<div class="worker-row" style="animation-delay:${i*.06}s" onclick="selectWorker(${i})">
+    return `<div class="worker-row" style="animation-delay:${i*.06}s" data-on-click="selectWorker(${i})">
       <div class="worker-av" style="background:${colors[i%colors.length]}">${(w.name||'?')[0].toUpperCase()}</div>
       <div style="flex:1;min-width:0">
         <div class="worker-name">${esc(w.name)}</div>
@@ -906,9 +1022,7 @@ async function confirmScan() {
   load(true, 'Recording…');
   try {
     let res;
-    if (_isDailyMode) {
-      res = await api('ackDailyWorker', { permitNo:_permit.permitNo, entryId:INIT_ENTRY_ID, certNo:_workerRec.certNo, workerName:_workerRec.name, contractor:_workerRec.contractor });
-    } else if (_action==='Acknowledgement') {
+    if (_action==='Acknowledgement') {
       const shiftId = _targetWorker?.shiftId || null;
       res = await api('recordWorkerAck', { permitNo:_permit.permitNo, certNo:_workerRec.certNo, workerName:_workerRec.name, contractor:_workerRec.contractor, shiftId });
     } else if (_action==='Closure') {
@@ -933,6 +1047,8 @@ async function confirmScan() {
       _action==='Closure' ? 'Closure Signed ✓' :
       _action==='Start'   ? 'Work Started ✓' :
       _action==='Stop'    ? 'Work Stopped ✓' : 'Acknowledged ✓';
+    if (window._lastQueued) document.getElementById('suc-title').textContent += ' (saved offline)';
+    if (_action==='Start' || _action==='Stop') bigConfirm(_action==='Start' ? 'Work Started' : 'Work Stopped', new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}) + (window._lastQueued ? ' · saved offline, will sync' : ''));
     document.getElementById('suc-sub').textContent = _permit.permitNo + ' · ' + new Date().toLocaleString('en-IN',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
 
     const prog = document.getElementById('suc-progress');
@@ -1049,6 +1165,78 @@ window.addEventListener('DOMContentLoaded', () => {
     loadPermitList();
   }
 });
+
+// Service worker: caches the scanner for offline use
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(err => console.warn('Service worker not registered:', err));
+}
+
+// Helper called from data-on-* handlers
+function upperCase(el) { el.value = el.value.toUpperCase(); }
+</script>
+<script>
+// ── Event dispatch: runs the calls written in data-on-* attributes. Only named functions can run. ──
+(function () {
+  function splitTop(src, sep) {
+    const out = []; let depth = 0, q = null, cur = '';
+    for (let i = 0; i < src.length; i++) {
+      const ch = src[i];
+      if (q) { cur += ch; if (ch === '\\') { cur += src[++i] || ''; } else if (ch === q) { q = null; } continue; }
+      if (ch === "'" || ch === '"') { q = ch; cur += ch; continue; }
+      if ('([{'.indexOf(ch) >= 0) depth++;
+      if (')]}'.indexOf(ch) >= 0) depth--;
+      if (ch === sep && depth === 0) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out.map(s => s.trim()).filter(s => s.length);
+  }
+  function parseArg(a, el, e) {
+    if (a === 'this') return el;
+    if (a === 'event') return e;
+    if (a === 'true') return true;
+    if (a === 'false') return false;
+    if (a === 'null') return null;
+    if (/^-?\d+(\.\d+)?$/.test(a)) return Number(a);
+    if ((a[0] === "'" || a[0] === '"') && a[a.length - 1] === a[0]) return a.slice(1, -1).replace(/\\(.)/g, '$1');
+    if (a[0] === '{' || a[0] === '[') return JSON.parse(a);
+    throw new Error('Unsupported argument: ' + a);
+  }
+  function runStatement(st, el, e) {
+    let m = st.match(/^if\s*\(\s*event\.key\s*===\s*'(\w+)'\s*\)\s*([\s\S]+)$/);
+    if (m) return e.key === m[1] ? runStatement(m[2], el, e) : null;
+    if (st === 'event.stopPropagation()') return 'stop';
+    m = st.match(/^([A-Za-z_$][\w$]*)\(([\s\S]*)\)$/);
+    if (!m) throw new Error('Unsupported handler: ' + st);
+    const fn = window[m[1]];
+    if (typeof fn !== 'function') throw new Error('Missing handler: ' + m[1]);
+    const args = m[2].trim() ? splitTop(m[2], ',').map(a => parseArg(a, el, e)) : [];
+    fn.apply(window, args);
+    return null;
+  }
+  function run(expr, el, e) {
+    let stop = false;
+    for (const st of splitTop(expr, ';')) {       // every statement runs, as with inline handlers
+      if (runStatement(st, el, e) === 'stop') stop = true;
+    }
+    return stop ? 'stop' : null;                  // 'stop' only halts bubbling to parent handlers
+  }
+  // Capture phase, so events that do not bubble (such as change events created in code) are also handled
+  ['click', 'change', 'input', 'keydown', 'mouseover', 'mouseout'].forEach(ev => {
+    document.addEventListener(ev, e => {
+      let el = e.target;
+      if (el && el.nodeType !== 1) el = el.parentElement;
+      while (el && el !== document.documentElement) {
+        const expr = el.getAttribute && el.getAttribute('data-on-' + ev);
+        if (expr) {
+          try { if (run(expr, el, e) === 'stop') break; }
+          catch (err) { console.error('Handler error (' + ev + '): ' + expr, err); }
+        }
+        el = el.parentElement;
+      }
+    }, true);
+  });
+})();
 </script>
 </body>
 </html>
