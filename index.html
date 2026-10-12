@@ -760,7 +760,7 @@ tbody tr:last-child td { border-bottom:none; }
 #pg-view-permit dt,
 #pg-view-permit [style*="text-transform:uppercase"],
 #pg-view-permit [style*="font-size:11px;font-weight:700"] {
-  font-weight: 800 !important;
+  font-weight: 600 !important;
   color: #0f172a !important;
 }
 
@@ -4496,11 +4496,12 @@ function buildView(el, p, log, tests, scans, sigs) {
       <div class="ph-title">${p.permitNo}</div>
       <div class="ph-sub">${esc(p.type)||'—'} · ${sbadge(p.status)} · Valid: ${shiftStartDisplay(p, ex)} → ${fd(p.validTo)}</div>
     </div>
-    <div class="btn-group">
+    <div class="btn-group" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <button class="btn btn-ghost" data-on-click="navBackFromPermit()">← Back</button>
-      <div class="action-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;width:100%;margin-top:10px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm)">${acts||'<span style="font-size:12px;color:var(--slate)">No action needed from you at this stage.</span>'}</div>
+      <button class="btn btn-ghost" data-on-click="loadView(&quot;${p.permitNo}&quot;)">⟳ Refresh</button>
     </div>
   </div>
+  <div class="action-bar" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 4px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm)">${acts||'<span style="font-size:12px;color:var(--slate)">No action needed from you at this stage.</span>'}</div>
   ${expAlert}
 
   
@@ -4521,9 +4522,11 @@ function buildView(el, p, log, tests, scans, sigs) {
         <dl style="display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;font-size:13px">
           <div style="grid-column:1/-1"><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Job Description</dt><dd style="color:var(--navy-mid)">${esc(p.jobDescription)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Area / Site</dt><dd>${esc(p.workArea)||'—'}</dd></div>
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Nature of Permit</dt><dd>${esc(p.type)||'—'}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Type of Permit</dt><dd>${esc(p.type)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Duration</dt><dd>${ex.durationDays?esc(ex.durationDays)+' day(s)':'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${(()=>{const we=ex.workEntries||[];const f=ex.durationFrom||(we[0]||{}).from||'';const t=ex.durationTo||(we[we.length-1]||{}).to||'';return (f||t)?esc(f||'—')+' → '+esc(t||'—'):'—';})()}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Valid From</dt><dd>${shiftStartDisplay(p, ex)}</dd></div>
+          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Valid To</dt><dd>${fd(p.validTo)}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)||'—'} · ${esc(p.originatorDept||'—')}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Permit Acceptor</dt><dd>${esc(p.acceptorName)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Safety In-Charge</dt><dd>${esc(p.safetyName)||'—'}</dd></div>
@@ -4675,34 +4678,6 @@ function buildView(el, p, log, tests, scans, sigs) {
           </div>`).join('')}
       </div>` : ''}
 
-      <!-- Audit Trail -->
-      <div class="card">
-        <div class="form-section-header"><div class="fs-num">📋</div><div class="fs-title">Audit Trail</div></div>
-        ${auditTable(log, sigMap, sigs)}
-
-        <!-- Worker Scans -->
-        ${scans.length?`<div style="margin-top:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
-          <table style="width:100%;border-collapse:collapse;font-size:12px">
-            <tr style="background:#f8fafc">
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
-            </tr>
-            ${scans.map(s=>`<tr>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
-            </tr>`).join('')}
-          </table>
-        </div>`:''}
-
-      </div>
-
       
 
       <!-- SECTION 8: Closure Panel (shown when Close Permit is clicked) -->
@@ -4803,6 +4778,37 @@ function buildView(el, p, log, tests, scans, sigs) {
         <div class="form-section-header"><div class="fs-num">⚠️</div><div class="fs-title">Additional Precautions</div></div>
         <div style="font-size:13px;padding:8px 10px;background:var(--bg);border-radius:var(--radius-sm);white-space:pre-wrap">${esc(ex.additionalPrecautions)||'—'}</div>
       </div>
+
+      <!-- Audit Trail -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">📋</div><div class="fs-title">Audit Trail</div></div>
+        ${auditTable(log, sigMap, sigs)}
+
+        <!-- Worker Scans -->
+        ${scans.length?`<div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
+
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#f8fafc">
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
+            </tr>
+            ${scans.map(s=>`<tr>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
+            </tr>`).join('')}
+          </table>
+        </div>`:''}
+
+      </div>
+
 
     </div>
   </div>`;
