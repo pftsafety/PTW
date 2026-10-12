@@ -3177,10 +3177,11 @@ async function renderForm() {
         <label style="font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">TBT Notes <span id="tbt-day-note-lbl" style="color:var(--blue);font-weight:600;text-transform:none;font-size:10px">(Day 1)</span></label>
         <input type="text" id="tbt-notes-day" placeholder="Notes for this day's Tool Box Talk…" style="width:100%;margin-top:4px;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none">
       </div>
-      <input type="hidden" name="tbt_notes" id="tbt-notes-hidden">
-      <div style="margin-top:8px;padding:8px 12px;background:#eff6ff;border-radius:var(--radius-sm);font-size:11px;color:var(--blue-dark)">
-        <strong>NB:</strong> Necessary group insurance to be maintained by the Contractor
+      <div style="margin-top:10px">
+        <label style="font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">Training given by (name)</label>
+        <input type="text" name="tbt_conducted_by" id="tbt-conducted-by" placeholder="Name of the person who gave the Tool Box Talk (optional)" style="width:100%;margin-top:4px;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none">
       </div>
+      <input type="hidden" name="tbt_notes" id="tbt-notes-hidden">
     </div>
   </div>
 
@@ -4053,6 +4054,20 @@ function initPermitDate() {}
 function updateDayDisplay() {}
 function openInductionModal_inner() {}
 
+// Permit-level Tool Box Talk: the first day's answers as one flat list, plus who gave the training
+function collectTBTFlat() {
+  const days = collectTBT();
+  const first = days[1] || Object.values(days)[0] || {};
+  const by = ((document.getElementById('tbt-conducted-by') || {}).value || '').trim();
+  return Object.assign({}, first, { conductedBy: by });
+}
+// Read saved Tool Box Talk answers in either format (flat, or keyed by day)
+function tbtFlat(raw) {
+  raw = raw || {};
+  const k = Object.keys(raw)[0];
+  if (k && !isNaN(parseInt(k))) { const d = raw[1] || raw[k]; return Object.assign({}, (d && typeof d === 'object') ? d : {}); }
+  return Object.assign({}, raw);
+}
 function collectTBT() {
   // Save current TBT day first
   saveTBTDayData(_tbtCurrentDay);
@@ -4153,7 +4168,7 @@ async function submitForm(e) {
     additionalPrecautions:fd.get('additionalPrecautions')||'',
     acceptorEmail, acceptorName, safetyEmail, safetyName,
     hazards, ppeControls, supporting,
-    tbt:collectTBT(), workersOnSite:_workEntries.flatMap(e=>e.workers||[]), workEntries:collectShiftsByDay(),
+    tbt:collectTBTFlat(), workersOnSite:_workEntries.flatMap(e=>e.workers||[]), workEntries:collectShiftsByDay(),
     confinedSpace:supporting.confinedSpace?collectCSForm(frm):null,
     excavation:   supporting.excavation   ?collectExcForm(frm):null,
     authOriginatorConfirmed: !!(frm.querySelector('[name=auth_originator_check]')?.checked),
@@ -4626,6 +4641,7 @@ function buildView(el, p, log, tests, scans, sigs) {
         <div class="form-section-header"><div class="fs-num">06</div><div class="fs-title">Tool Box Talk</div></div>
         ${tbtHtml}
         ${tbt.notes?`<div style="margin-top:8px;font-size:12px;color:var(--slate)"><strong>Notes:</strong> ${esc(tbt.notes)}</div>`:''}
+        ${tbt.conductedBy?`<div style="margin-top:6px;font-size:12px;color:var(--slate)"><strong>Training given by:</strong> ${esc(tbt.conductedBy)}</div>`:''}
       </div>
 
       <!-- Declarations — Section 07 -->
@@ -5893,13 +5909,19 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     + pBox(`<div class="field-label">Department Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:7.5px;margin-top:3px">${EXC_DEPTS.map(d => `<span>${esc2(d)}: <b>${esc2((xv.deptChecks||{})[d] || '—')}</b></span>`).join('')}</div>`)
     + `</table>` : '';
   const tbtKeys = TBT.map(t => t.k);
-  const tbtShiftBlock = (ex.shifts || []).length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Shift-wise Tool Box Talk (a–j: Yes / No / NA)</td></tr>`
-    + pBox(`<table style="width:100%;border-collapse:collapse;font-size:7.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Shift</th>${tbtKeys.map(k => `<th style="border:1px solid #000;padding:2px">${k}</th>`).join('')}<th style="border:1px solid #000;padding:2px;text-align:left">Conducted by</th></tr>`
-      + ex.shifts.map((sh, i) => {
-          const it = (sh.tbt && sh.tbt.items) || (i === 0 ? (ex.tbt || {}) : {});
-          const by = (sh.tbt && sh.tbt.conductedBy) || (i === 0 ? ((ex.tbt || {}).conductedBy || '') : '');
-          return `<tr><td style="border:1px solid #000;padding:2px">${esc2(fmtShiftDate(sh.date, sh.shiftNo || i+1))}</td>${tbtKeys.map(k => `<td style="border:1px solid #000;padding:2px;text-align:center">${esc2(it[k] || '—')}</td>`).join('')}<td style="border:1px solid #000;padding:2px">${esc2(by || '—')}</td></tr>`;
-        }).join('') + `</table>`)
+  // Shift-wise Tool Box Talk: one row per question (full text), one column per shift
+  const shiftCols = (ex.shifts || []).map((sh, i) => ({ sh, i }));
+  const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Shift-wise Tool Box Talk (Yes / No / NA)</td></tr>`
+    + pBox(`<table style="width:100%;border-collapse:collapse;font-size:7.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
+      + TBT.map(q => `<tr><td style="border:1px solid #000;padding:2px">(${q.k}) ${esc2(q.l)}</td>${shiftCols.map(({sh,i}) => {
+          const it = (sh.tbt && sh.tbt.items) || (i === 0 ? tbtFlat(ex.tbt) : {});
+          return `<td style="border:1px solid #000;padding:2px;text-align:center">${esc2(it[q.k] || '—')}</td>`;
+        }).join('')}</tr>`).join('')
+      + `<tr><td style="border:1px solid #000;padding:2px;font-weight:700">Conducted by</td>${shiftCols.map(({sh,i}) => {
+          const by = (sh.tbt && sh.tbt.conductedBy) || (i === 0 ? (tbtFlat(ex.tbt).conductedBy || '') : '');
+          return `<td style="border:1px solid #000;padding:2px">${esc2(by || '—')}</td>`;
+        }).join('')}</tr>`
+      + `</table>`)
     + `</table>` : '';
 
   // ── Shift-wise approval helpers ─────────────────────────────────
@@ -6264,12 +6286,9 @@ ${detailsBlock}${csBlock}${exBlock}
     }).join('')}
     ${tbtList.slice(Math.ceil(tbtList.length/2)).length % 2 !== 0 ? '<td style="border:1px solid #000"></td>' : ''}
   </tr>
-  <tr>
-    <td colspan="3" style="border:1px solid #000;padding:3px;font-size:8px">
-      <strong>NB:</strong> Necessary group insurance to be maintained by the Contractor
-    </td>
-  </tr>
 </table>
+
+${tbtShiftBlock}
 
 <!-- ════════ SECTION 7: PERSONS AT SITE ════════ -->
 <table style="margin-top:3px">
@@ -6316,23 +6335,7 @@ ${workerScans.length?`
   </tr>`).join('')}
 </table>`:''}
 
-<!-- ════════ DIGITAL SIGNATURES ════════ -->
-${sigs&&sigs.length?`
-<table style="margin-top:3px">
-  <tr><td class="sec-head" colspan="4">Digital Signatures Collected</td></tr>
-  <tr>
-    ${sigs.map(s=>`<td style="border:1px solid #000;padding:4px 6px;width:25%;vertical-align:top">
-      <div style="font-size:8px;font-weight:700;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:2px">${esc2(s.role||'')}</div>
-      <div style="font-size:8.5px;font-weight:700">${esc2(s.name||'')}</div>
-      <div style="font-size:7px;color:#555">${fmtDT(s.time)}</div>
-      <div style="font-size:8px;font-weight:700;color:${s.action==='Approved'||s.action==='Signed'?'green':'#c00'}">${esc2(s.action||'')}</div>
-      ${s.comments?`<div style="font-size:7px;color:#666;margin-top:2px;font-style:italic">${esc2(s.comments)}</div>`:''}
-    </td>`).join('')}
-    ${sigs.length%4!==0?`<td colspan="${4-sigs.length%4}"></td>`:''}
-  </tr>
-</table>`:''}
 
-${tbtShiftBlock}
 <!-- ════════ SECTION 8: STATUS / COMPLETION ════════ -->
 <!-- ════════ DAY 2–7 DAILY WORK ENTRIES ════════ -->
 ${(ex.dailyEntries&&ex.dailyEntries.length)?`
