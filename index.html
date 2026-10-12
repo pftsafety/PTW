@@ -3124,9 +3124,6 @@ async function renderForm() {
           title="Download Blank TBT Record Form">
           ⬇ TBT Form
         </a>
-        <span style="font-size:10px;color:var(--slate);font-weight:700">Day:</span>
-        ${Array.from({length:7},(_,i)=>`<button type="button" id="tbt-day-btn-${i+1}" data-on-click="switchTBTDay(${i+1})" style="padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;border:1.5px solid ${i===0?'#0f172a':'#e2e8f0'};background:${i===0?'#0f172a':'#fff'};color:${i===0?'#fff':'#475569'};cursor:pointer">${i+1}</button>`).join('')}
-        <span style="width:1px;height:16px;background:#e2e8f0;margin:0 3px"></span>
         <button type="button" class="btn btn-ghost btn-xs" data-on-click="tbtSelectAll('Yes')" style="color:var(--green);border-color:var(--green);font-size:10px">All Yes</button>
         <button type="button" class="btn btn-ghost btn-xs" data-on-click="tbtSelectAll('NA')" style="color:var(--slate);font-size:10px">All NA</button>
       </div>
@@ -3174,7 +3171,7 @@ async function renderForm() {
         </div>`).join('')}
       </div>
       <div style="margin-top:10px">
-        <label style="font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">TBT Notes <span id="tbt-day-note-lbl" style="color:var(--blue);font-weight:600;text-transform:none;font-size:10px">(Day 1)</span></label>
+        <label style="font-size:10.5px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">TBT Notes </label>
         <input type="text" id="tbt-notes-day" placeholder="Notes for this day's Tool Box Talk…" style="width:100%;margin-top:4px;padding:8px 11px;border:1.5px solid #e2e8f0;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none">
       </div>
       <div style="margin-top:10px">
