@@ -694,10 +694,20 @@ function selectPermit(p) {
 }
 
 // ── Worker list ────────────────────────────────────────────
+// Date as "10 Oct 2026"
+function fmtDateShort(s) {
+  if (!s) return '';
+  var t = new Date(s + (String(s).indexOf('T') > -1 ? '' : 'T00:00:00'));
+  if (isNaN(t.getTime())) return esc(String(s));
+  var M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return String(t.getDate()).padStart(2, '0') + ' ' + M[t.getMonth()] + ' ' + t.getFullYear();
+}
 function renderScannerPermitDetails(p, ex) {
-  var hazards = ex.hazards || [];
-  var ppe     = ex.ppeControls || [];
+  // Hazards and PPE are saved on the permit itself (fall back to extras for older records)
+  var hazards = p.hazards || ex.hazards || [];
+  var ppe     = p.ppeControls || ex.ppeControls || [];
   var shifts  = ex.shifts || [];
+  var entry0  = (ex.workEntries || [])[0] || {};
 
   var hazardsHtml = hazards.length
     ? hazards.map(function(h){ return '<span style="display:inline-block;margin:2px 4px 2px 0;padding:3px 9px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3);border-radius:99px;font-size:11px;color:#fca5a5">⚠ '+esc(h)+'</span>'; }).join('')
@@ -719,7 +729,7 @@ function renderScannerPermitDetails(p, ex) {
         + '</div>';
     }).join('') || '<div style="font-size:11px;color:rgba(255,255,255,.4);padding:4px 0">No workers</div>';
     return '<div style="margin-top:8px">'
-      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase">Shift '+(sh.shiftNo||si+1)+' — '+esc(sh.date||'')+' '+esc(shiftBase(sh.shift))+'</div>'
+      + '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase">Shift '+(sh.shiftNo||si+1)+' — '+fmtDateShort(sh.date || (si===0 ? entry0.date : ''))+' '+esc(shiftBase(sh.shift || (si===0 ? entry0.shift : '')))+'</div>'
       + rows
       + '</div>';
   }).join('') || '<div style="font-size:11px;color:rgba(255,255,255,.4)">No shift data</div>';
