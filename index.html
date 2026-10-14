@@ -4378,6 +4378,7 @@ function buildView(el, p, log, tests, scans, sigs) {
     if (s.hasSignature && s.signatureData) sigMap[s.role] = s;
   });
 
+  const _cl = closureSteps(p, ex);
   // Action buttons
   const _dailyEntries    = ex.dailyEntries || [];
   const _pendingDailyAcc = _dailyEntries.find(e => e.status === 'Pending Acceptor');
@@ -4724,6 +4725,14 @@ function buildView(el, p, log, tests, scans, sigs) {
 
       </div>
       </details>
+
+      <!-- Permit closure status -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">🔏</div><div class="fs-title">Permit Closure</div></div>
+        ${!_cl.inClosure ? '<div style="font-size:13px;color:var(--slate)">Closure has not been initiated.</div>' : `
+          <div style="font-size:12px;color:var(--slate);margin-bottom:8px">Job status: <strong>${esc(ex.closureJobStatus||'—')}</strong>${(ex.closureComments||ex.sec8Comments) ? ' · Remarks: '+esc(ex.closureComments||ex.sec8Comments) : ''}</div>
+          <div class="tl-h">${_cl.rows.map(r => tlStepH(r.icon, r.label, r.name, r.time, r.done, r.active)).join('')}</div>`}
+      </div>
 
       <!-- SECTION 8: Closure Panel (shown when Close Permit is clicked) -->
       <div id="sec8-closure-panel" style="display:none;border:2px solid var(--green);border-radius:var(--radius);overflow:hidden;margin-top:2px">
@@ -5864,17 +5873,23 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   // Closure sign-offs are saved under exact closure roles and happen once per permit.
   const closureSigCell = (label, sub, roleKey) => {
     const s = [...(sigs||[])].filter(x => x.role === roleKey && x.hasSignature && x.signatureData).pop();
-    const info = (ex.closureSigns||{})[roleKey] || null;
+    // The Job Performer signs closure on the scanner; that record is stored as closureJPSign
+    const isJP = roleKey === 'Closure-JobPerformer';
+    const info = isJP
+      ? (ex.closureJPSign ? { name: ex.closureJPSign.workerName, time: ex.closureJPSign.time } : null)
+      : ((ex.closureSigns||{})[roleKey] || null);
     const name = s ? s.name : (info ? info.name : '');
     const time = s ? s.time : (info ? info.time : '');
     const img = s
       ? `<img src="${s.signatureData}" alt="signature" style="display:block;height:42px;max-width:150px;object-fit:contain;margin:2px auto">`
       : '<div style="height:42px;border-bottom:1px dotted #999;margin:4px 0"></div>';
+    const via = (isJP && info) ? '<div style="font-size:7.5px;color:#15803d;font-weight:700">Signed via Job Performer scanner</div>' : '';
     return `<td style="border:1px solid #000;padding:4px 5px;vertical-align:top;width:25%">`
       + `<div style="font-size:8px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>`
       + `<div style="font-size:8px;color:#444;margin-bottom:3px">${sub||''}</div>${img}`
       + `<div style="font-size:8px;font-weight:700">${esc2(name||'')}</div>`
-      + `<div style="font-size:7.5px;color:#555">${time ? fmtDT(time) : ''}</div></td>`;
+      + via
+      + `<div style="font-size:7px;color:#555">${time ? 'Signed: ' + fmtDT(time) : ''}</div></td>`;
   };
 
   // ── Extra print sections: the details the permit view shows ──
@@ -5910,11 +5925,11 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   // Section 7: workers for every shift (falls back to the work entries for older permits)
   const sec7 = (ex.shifts || []).length
     ? ex.shifts.flatMap((sh, i) => (sh.workers || []).map(w => ({
-        name: w.name, company: w.company || w.contractor || '', certNo: w.certNo || '',
+        name: w.name, company: w.company || w.contractor || '', certNo: w.certNo || '', signed: w.ackedAt ? fmtDT(w.ackedAt) : '—',
         date: fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1) + (shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) ? ' · ' + shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) : ''), time: '' })))
-    : (ex.workEntries || []).flatMap((e, i) => (e.workers || []).map(w => ({ name: w.name, company: w.company || '', certNo: w.certNo || '', date: fmtShiftDate(e.date, i+1), time: '' })));
+    : (ex.workEntries || []).flatMap((e, i) => (e.workers || []).map(w => ({ name: w.name, company: w.company || '', certNo: w.certNo || '', date: fmtShiftDate(e.date, i+1), time: '', signed: '—' })));
   const shiftCols = (ex.shifts || []).map((sh, i) => ({ sh, i }));
-  const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Shift-wise Tool Box Talk (Yes / No / NA)</td></tr>`
+  const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Section 6: Shift-wise Tool Box Talk (Yes / No / NA)</td></tr>`
     + pBox(`<table style="width:100%;border-collapse:collapse;font-size:7.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
       + TBT.map(q => `<tr><td style="border:1px solid #000;padding:2px">(${q.k}) ${esc2(q.l)}</td>${shiftCols.map(({sh,i}) => {
           const it = (sh.tbt && sh.tbt.items) || (i === 0 ? tbtFlat(ex.tbt) : {});
@@ -5963,8 +5978,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
         + `<div style="font-size:7.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
         + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date, sh.shiftNo))}</div>`
         + `<div style="font-size:7.5px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
-        + `<div style="font-size:7.5px;color:#444">Workers ack: ${sh.workerAckCount||0}/${sh.workerAckTotal||0}</div>`
-        + `<div style="font-size:7.5px;font-weight:700;color:${cancelled?'#64748b':'#0f172a'}">${esc2(sh.shiftStatus||'')}</div><div style="font-size:7.5px;margin-top:3px">${(sh.workers||[]).map(w => esc2(w.name) + (w.acked ? ' ✓' : '')).join('<br>')}</div></td>`;
+        + `</td>`;
       if (cancelled) {
         return `<tr>${shiftCell}<td colspan="5" style="border:1px solid #000;padding:3px 4px;font-size:7.5px;color:#475569">`
           + `Cancelled by ${esc2(sh.cancelledBy||'—')} on ${fmtDT(sh.cancelledAt)} — ${esc2(sh.cancelReason||'No reason given')}. No work carried out under this shift.</td></tr>`;
@@ -6267,41 +6281,18 @@ ${csBlock}${exBlock}
   </tr>`).join('')}
 </table>
 
-<!-- ════════ SECTION 6: TOOL BOX TALK ════════ -->
-<table style="margin-top:3px">
-  <tr><td colspan="3" class="sec-head">Section 6: Tool Box Talk — Job Performer Awareness Check (Yes / No / NA)</td></tr>
-  <tr>
-    ${tbtList.slice(0,Math.ceil(tbtList.length/2)).map(item=>{
-      const v=tbt[item.k]||'No';
-      return `<td style="border:1px solid #000;padding:2px 4px;font-size:8px;width:50%">
-        (${item.k}) ${esc2(item.l)} &nbsp;
-        <strong style="color:${v==='Yes'?'green':v==='NA'?'#666':'#c00'}">${v}</strong>
-      </td>`;
-    }).join('')}
-  </tr>
-  <tr>
-    ${tbtList.slice(Math.ceil(tbtList.length/2)).map(item=>{
-      const v=tbt[item.k]||'No';
-      return `<td style="border:1px solid #000;padding:2px 4px;font-size:8px">
-        (${item.k}) ${esc2(item.l)} &nbsp;
-        <strong style="color:${v==='Yes'?'green':v==='NA'?'#666':'#c00'}">${v}</strong>
-      </td>`;
-    }).join('')}
-    ${tbtList.slice(Math.ceil(tbtList.length/2)).length % 2 !== 0 ? '<td style="border:1px solid #000"></td>' : ''}
-  </tr>
-</table>
-
 ${tbtShiftBlock}
 
 <!-- ════════ SECTION 7: PERSONS AT SITE ════════ -->
 <table style="margin-top:3px">
-  <tr><td colspan="5" class="sec-head">Section 7: Details of Persons Working at Site</td></tr>
+  <tr><td colspan="6" class="sec-head">Section 7: Details of Persons Working at Site</td></tr>
   <tr>
     <th style="background:#eee;width:5%;text-align:center">Sl.</th>
-    <th style="background:#eee;width:30%">Name of Person</th>
-    <th style="background:#eee;width:27%">Name of Company / Contractor</th>
-    <th style="background:#eee;width:22%">Certificate / ID No.</th>
-    <th style="background:#eee;width:16%">Date &amp; Shift</th>
+    <th style="background:#eee;width:25%">Name of Person</th>
+    <th style="background:#eee;width:22%">Name of Company / Contractor</th>
+    <th style="background:#eee;width:18%">Certificate / ID No.</th>
+    <th style="background:#eee;width:15%">Date &amp; Shift</th>
+    <th style="background:#eee;width:15%">Signed Time</th>
   </tr>
   ${sec7.length ? sec7.map((w,i)=>`
   <tr>
@@ -6310,10 +6301,11 @@ ${tbtShiftBlock}
     <td>${esc2(w.company||'')}</td>
     <td>${esc2(w.certNo||'')}</td>
     <td style="font-size:7.5px">${esc2(w.date||'')} ${esc2(w.time||'')}</td>
+    <td style="font-size:7.5px">${esc2(w.signed||'—')}</td>
   </tr>`).join('')
-  : `<tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>
-     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>`}
+  : `<tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
+     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
+     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>`}
 </table>
 
 <!-- ════════ WORKER SIGN RECORDS ════════ -->
@@ -6583,6 +6575,21 @@ function tlStepH(ic, role, name, time, done, isActive) {
     + '</div>';
 }
 
+// Closure steps: Job Performer, then Originator, Safety and Acceptor
+function closureSteps(p, ex) {
+  const cs = ex.closureSigns || {};
+  const jp = ex.closureJPSign || null;
+  const st = p.status || '';
+  const who = (k) => (cs[k] || {});
+  const rows = [
+    { label: 'Job Performer', icon: '📱', name: jp ? (jp.workerName + ' · via scanner') : '', time: jp ? jp.time : '', waiting: 'Pending Closure — Job Performer' },
+    { label: 'Originator',    icon: '📝', name: who('Closure-Originator').name || '', time: who('Closure-Originator').time || '', waiting: 'Pending Closure — Originator' },
+    { label: 'Safety',        icon: '🛡️', name: who('Closure-Safety').name || '',     time: who('Closure-Safety').time || '',     waiting: 'Pending Closure — Safety' },
+    { label: 'Acceptor',      icon: '🏭', name: who('Closure-Acceptor').name || '',   time: who('Closure-Acceptor').time || '',   waiting: 'Pending Closure — Acceptor' }
+  ];
+  rows.forEach(r => { r.done = st === 'Closed' || !!r.time; r.active = st === r.waiting; });
+  return { inClosure: st.indexOf('Pending Closure') === 0 || st === 'Closed', closed: st === 'Closed', rows };
+}
 function renderApprovalWorkflowHorizontal(p, ex) {
   const shifts = ex.shifts || [];
   // Reflect the CURRENT shift's progress (not just Shift 1) — falls back to
@@ -6618,8 +6625,10 @@ function renderApprovalWorkflowHorizontal(p, ex) {
   stepsHtml += tlStepH('▶','Start', startTime?fd(startTime):'', null, !!startTime, curStatus==='Active'&&!startTime)
     + tlStepH('⏹','Stop', stopTime?fd(stopTime):'', null, !!stopTime, curStatus==='Active'&&!!startTime&&!stopTime);
 
+  const _clw = closureSteps(p, ex);
+  if (_clw.inClosure) stepsHtml += _clw.rows.map(r => tlStepH(r.icon, 'Closure · '+r.label, r.name, r.time, r.done, r.active)).join('');
   return '<div class="card">'
-    + '<div class="form-section-header"><div class="fs-num">04</div><div class="fs-title">Approval Workflow'
+    + '<div class="form-section-header"><div class="fs-num">04</div><div class="fs-title">'+(_clw.inClosure ? 'Approval &amp; Closure Workflow' : 'Approval Workflow')
       + (cur ? ' — Shift '+(cur.shiftNo||'')+' · '+fmtShiftDate(shiftDateOf(cur, ex, shifts.indexOf(cur)), cur.shiftNo)+(workTimeLabel(cur,ex,shifts.indexOf(cur))?' · Work '+workTimeLabel(cur,ex,shifts.indexOf(cur)):'')+' · '+esc(shiftNameFor(cur, shiftEntry(ex, shifts.indexOf(cur))))+'' : '')
     + '</div></div>'
     + '<div class="tl-h">' + stepsHtml + '</div>'
@@ -7168,8 +7177,8 @@ if ('serviceWorker' in navigator) {
     <div style="font-size:13px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px">Permit Limits</div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bg)">
       <div>
-        <div style="font-size:14px;font-weight:600;color:var(--navy)">Max Active/Pending Permits per Originator</div>
-        <div style="font-size:11px;color:var(--slate);margin-top:2px">Originator cannot create new permits once this limit is reached</div>
+        <div style="font-size:14px;font-weight:600;color:var(--navy)">Max Permits Pending Closure per Originator</div>
+        <div style="font-size:11px;color:var(--slate);margin-top:2px">Originator cannot create new permits while this many of their permits are waiting for closure. Active permits do not count.</div>
       </div>
       <input type="number" id="s-max-pending" min="1" max="20" value="5"
         style="width:70px;padding:7px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-weight:700;text-align:center;outline:none"
