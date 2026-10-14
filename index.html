@@ -5929,7 +5929,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
         date: fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1) + (shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) ? ' · ' + shiftBaseName(sh.shift || (i === 0 ? ((ex.workEntries || [])[0] || {}).shift : '')) : ''), time: '' })))
     : (ex.workEntries || []).flatMap((e, i) => (e.workers || []).map(w => ({ name: w.name, company: w.company || '', certNo: w.certNo || '', date: fmtShiftDate(e.date, i+1), time: '', signed: '—' })));
   const shiftCols = (ex.shifts || []).map((sh, i) => ({ sh, i }));
-  const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Section 6: Shift-wise Tool Box Talk (Yes / No / NA)</td></tr>`
+  const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Section 6: Tool Box Talk — Job Performer Awareness Check (Yes / No / NA)</td></tr>`
     + pBox(`<table style="width:100%;border-collapse:collapse;font-size:7.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
       + TBT.map(q => `<tr><td style="border:1px solid #000;padding:2px">(${q.k}) ${esc2(q.l)}</td>${shiftCols.map(({sh,i}) => {
           const it = (sh.tbt && sh.tbt.items) || (i === 0 ? tbtFlat(ex.tbt) : {});
@@ -6281,7 +6281,7 @@ ${csBlock}${exBlock}
   </tr>`).join('')}
 </table>
 
-${tbtShiftBlock}
+
 
 <!-- ════════ SECTION 7: PERSONS AT SITE ════════ -->
 <table style="margin-top:3px">
