@@ -2460,7 +2460,7 @@ function loadDashboard() {
         </div>
       </div>
       <div class="stats-grid">
-        <div class="stat-card green" data-on-click="openTile(&quot;active&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--green)">${s.active||0}</div><div class="stat-label">✅ Active Permits</div></div>
+        <div class="stat-card green" data-on-click="openTile(&quot;active&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--green)">${s.active||0}</div><div class="stat-label">✅ Work Active Today</div></div>
         <div class="stat-card amber" data-on-click="openTile(&quot;pending&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--amber)">${s.pending||0}</div><div class="stat-label">⏳ Pending Approval</div></div>
         <div class="stat-card purple" data-on-click="openTile(&quot;closure&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--purple)">${s.pendingClosure||0}</div><div class="stat-label">🔏 Pending Closure</div></div>
         <div class="stat-card slate" data-on-click="openTile(&quot;closed&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--slate)">${s.closed||0}</div><div class="stat-label">📁 Closed</div></div>
@@ -2513,10 +2513,22 @@ function openTile(t) {
   window._tile = t;
   nav(CU && (CU.roles || [CU.role]).some(r => ['Admin','Safety','Safety Officer','Safety Dept'].includes(r)) ? 'all-permits' : 'my-permits');
 }
+// Safety view of "active": in force AND work under way or started today (matches the server)
+function isWorkActiveToday(p) {
+  if (p.status !== 'Active') return false;
+  const d = new Date();
+  const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const ex = p.extras || {};
+  return (ex.shifts || []).some((s, i) => {
+    const date = s.date || (i === 0 ? ((ex.workEntries || [])[0] || {}).date : '');
+    if (s.shiftStatus === 'Active') return true;
+    return date === today && !!s.jobStartTime;
+  });
+}
 function tileMatch(p, t) {
   const st = p.status || '';
   if (!t || t === 'all') return true;
-  if (t === 'active') return st === 'Active';
+  if (t === 'active') return isWorkActiveToday(p);
   if (t === 'pending') return st.indexOf('Pending') === 0 && st.indexOf('Pending Closure') !== 0;
   if (t === 'closure') return st.indexOf('Pending Closure') === 0;
   if (t === 'closed') return st === 'Closed';
