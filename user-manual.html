@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PTW System — User Manual</title>
+<style>
+  :root { --navy:#0f172a; --slate:#64748b; --line:#e2e8f0; --bg:#f8fafc; --blue:#2563eb; --amber:#b45309; --green:#15803d; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; color:#1e293b; background:#fff; line-height:1.6; font-size:15px; }
+  header { background:var(--navy); color:#fff; padding:28px 24px; }
+  header h1 { margin:0; font-size:24px; }
+  header p { margin:6px 0 0; color:#cbd5e1; font-size:14px; }
+  .wrap { display:grid; grid-template-columns: 240px 1fr; gap:0; max-width:1100px; margin:0 auto; }
+  nav { border-right:1px solid var(--line); padding:22px 18px; position:sticky; top:0; align-self:start; height:100vh; overflow:auto; }
+  nav h2 { font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--slate); margin:0 0 10px; }
+  nav a { display:block; color:#334155; text-decoration:none; padding:5px 8px; border-radius:6px; font-size:14px; }
+  nav a:hover { background:var(--bg); color:var(--blue); }
+  main { padding:24px 32px 60px; }
+  section { margin-bottom:34px; scroll-margin-top:16px; }
+  h2.sec { font-size:20px; color:var(--navy); margin:0 0 10px; padding-bottom:6px; border-bottom:2px solid var(--line); }
+  h3 { font-size:16px; color:var(--navy); margin:18px 0 6px; }
+  p, li { color:#334155; }
+  ul, ol { padding-left:22px; margin:6px 0 12px; }
+  li { margin:3px 0; }
+  .note { background:#eff6ff; border-left:4px solid var(--blue); padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px; }
+  .warn { background:#fffbeb; border-left:4px solid #f59e0b; padding:10px 14px; border-radius:6px; margin:12px 0; font-size:14px; }
+  table { border-collapse:collapse; width:100%; margin:10px 0 14px; font-size:14px; }
+  th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top; }
+  th { background:var(--bg); color:var(--navy); }
+  code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:13px; }
+  .flow { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:10px 0 14px; font-size:13px; }
+  .flow span { background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:6px 10px; color:var(--navy); font-weight:600; }
+  .flow b { color:var(--slate); font-weight:400; }
+  @media (max-width: 800px) {
+    .wrap { grid-template-columns: 1fr; }
+    nav { position:static; height:auto; border-right:none; border-bottom:1px solid var(--line); }
+    main { padding:20px 18px 50px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>PTW System — User Manual</h1>
+  <p>HLL Lifecare Limited · Peroorkada Factory · Permit to Work</p>
+</header>
+
+<div class="wrap">
+<nav>
+  <h2>Contents</h2>
+  <a href="#roles">1. Who uses the system</a>
+  <a href="#signin">2. Signing in</a>
+  <a href="#dashboard">3. Dashboard</a>
+  <a href="#raise">4. Raising a permit</a>
+  <a href="#approve">5. Approvals</a>
+  <a href="#shifts">6. Shifts and workers</a>
+  <a href="#induction">7. Worker induction and QR code</a>
+  <a href="#scanner">8. Scanner (Job Performer)</a>
+  <a href="#gas">9. Gas tests</a>
+  <a href="#closure">10. Closing a permit</a>
+  <a href="#view">11. The permit view</a>
+  <a href="#print">12. Printing</a>
+  <a href="#notify">13. Notifications</a>
+  <a href="#trouble">14. Troubleshooting</a>
+</nav>
+
+<main>
+
+<section id="roles">
+  <h2 class="sec">1. Who uses the system</h2>
+  <table>
+    <tr><th>Role</th><th>What they do</th></tr>
+    <tr><td>Originator</td><td>Raises the permit, signs as originator, adds shifts, starts closure.</td></tr>
+    <tr><td>Permit Acceptor</td><td>Signs the Acceptor approval and the Acceptor closure.</td></tr>
+    <tr><td>Safety (Safety Dept / Safety Officer / Safety In-Charge)</td><td>Signs the Safety approval and the Safety closure. Can see all permits.</td></tr>
+    <tr><td>Duty Officer</td><td>Endorses work outside general duty hours (09:15–17:15) when required.</td></tr>
+    <tr><td>Job Performer and workers</td><td>Use the Scanner on site: acknowledge the permit, record Work Start and Work Stop, and sign closure.</td></tr>
+    <tr><td>Admin</td><td>Manages users and settings, and can repair a permit's status.</td></tr>
+  </table>
+  <div class="note">A user can hold more than one role. Each signature is recorded with the signer's name, role and time.</div>
+</section>
+
+<section id="signin">
+  <h2 class="sec">2. Signing in</h2>
+  <ol>
+    <li>Enter your company email and password, then select <b>Sign in</b>.</li>
+    <li>New users leave the password blank on first sign-in and set their own password.</li>
+    <li>If you forget your password, select <b>Forgot password?</b> on the sign-in page. A 6-digit code is emailed to you. Enter it with your new password. The code expires in 15 minutes.</li>
+    <li>After five wrong passwords the account is locked for 15 minutes.</li>
+    <li>You are signed out after 15 minutes without activity.</li>
+  </ol>
+</section>
+
+<section id="dashboard">
+  <h2 class="sec">3. Dashboard</h2>
+  <p>The tiles summarise permits. Select a tile to open the matching list.</p>
+  <table>
+    <tr><th>Tile</th><th>Meaning</th></tr>
+    <tr><td>Work Active Today</td><td>Permits in force where work is under way, or a shift started today.</td></tr>
+    <tr><td>Pending Approval</td><td>Permits waiting for an approval signature.</td></tr>
+    <tr><td>Pending Closure</td><td>Permits in closure.</td></tr>
+    <tr><td>Closed / Total</td><td>Closed permits, and all permits you can see.</td></tr>
+    <tr><td>Expiring in 48h</td><td>Permits in force that end within two days.</td></tr>
+  </table>
+  <p>In the permit lists, <b>Waiting for me</b> shows only the permits waiting for your signature. Each row shows the next step, for example <i>Waiting for Acceptor: name</i>.</p>
+  <div class="note">Permits are shown to the people involved in them: the originator, the assigned Acceptor and Safety In-Charge, Safety roles (who see all permits), and Duty Officers for permits awaiting endorsement.</div>
+</section>
+
+<section id="raise">
+  <h2 class="sec">4. Raising a permit</h2>
+  <p>Open <b>New Permit</b>. The form has numbered sections; use the bar at the top to jump between them.</p>
+  <ol>
+    <li><b>Work details:</b> nature of permit, job description, work area, duration, and work entries (date, shift, from and to times). Add the workers to each work entry as described below.</li>
+    <li><b>Hazards and PPE:</b> tick all that apply. Use <i>Others</i> to describe anything not listed.</li>
+    <li><b>Gas test</b> (where required) and the confined space, excavation, or electrical sections when they apply.</li>
+    <li><b>Contractors and equipment:</b> contractor details, other contractors on site, emergency contact, safety harness number, engineering equipment.</li>
+    <li><b>Tool Box Talk:</b> answer each question Yes, No or NA. Enter the name of the person who gave the training.</li>
+    <li><b>Authorisation:</b> confirm the originator declarations, then sign.</li>
+  </ol>
+  <h3>Adding workers to a work entry</h3>
+  <ol>
+    <li>Add a work entry with its date and from and to times. You must add the entry before adding workers.</li>
+    <li>Open the entry and select <b>Add Worker from Induction Database</b>.</li>
+    <li>Type part of the worker's <b>name or certificate number</b> in the search box. Matching workers from the induction database appear.</li>
+    <li>Select a worker to add them. Their name, certificate number and company are filled in from the database.</li>
+    <li>To remove a worker, select the remove button (✕) on their row.</li>
+  </ol>
+  <div class="note">Only workers who have completed the safety induction can be added (see section 7). If a worker is missing from the search, they are not yet inducted.</div>
+  <h3>Save as draft</h3>
+  <p>Select <b>Save as draft</b> to keep unfinished work. Find drafts at the top of <b>My Permits</b>, and open one to continue. Drafts are private to the person who saved them. Attached files are not kept in drafts, so re-attach them before submitting.</p>
+  <div class="warn">If a listed worker is already on another permit that is still in progress, the system shows a warning. You can continue, but check that the worker is not working in two places.</div>
+  <div class="warn">You can only have a set number of permits waiting for closure at the same time. Active permits do not count toward this limit.</div>
+</section>
+
+<section id="approve">
+  <h2 class="sec">5. Approvals</h2>
+  <div class="flow"><span>Originator</span><b>→</b><span>Worker acknowledgement</span><b>→</b><span>Acceptor</span><b>→</b><span>Safety</span><b>→</b><span>Duty Officer (if needed)</span><b>→</b><span>Active</span></div>
+  <ol>
+    <li>Open the permit and select the approval button for your role.</li>
+    <li>Check the summary sheet that appears, then continue to the signature pad.</li>
+    <li>Sign. Your name and time are recorded.</li>
+    <li>To reject, choose a reason (or type one) and select <b>Reject</b>. The originator is notified.</li>
+  </ol>
+  <p>You can only sign as a role you hold. The system refuses other signatures.</p>
+</section>
+
+<section id="shifts">
+  <h2 class="sec">6. Shifts and workers</h2>
+  <p>Each permit has one or more shifts. Each shift has its own workers, signatures, Work Start and Work Stop.</p>
+  <h3>Adding a shift</h3>
+  <ol>
+    <li>Open an active permit and select <b>Add Shift</b>.</li>
+    <li>Choose the date and shift. The work from and to times fill in automatically; change them if needed.</li>
+    <li>Add the workers for this shift: type in <b>Search induction database</b> (name or certificate number) and select the worker. Remove a worker with ✕. Then complete the Tool Box Talk for the shift and upload the signed record if required.</li>
+    <li>Sign to authorise the shift. Each listed worker then acknowledges it on the Scanner.</li>
+  </ol>
+  <h3>Changing the workers on a shift</h3>
+  <p>Workers on a shift can be added or removed only when the shift is created. To change the workers on a shift that has already been created, cancel the shift (if it has not started) and add a new one with the correct workers.</p>
+  <h3>Cancelling a shift</h3>
+  <p>A shift that is still waiting for worker acknowledgement, or for Acceptor, Safety or Duty Officer signature, can be cancelled with a reason. The permit stays in force, and you can add a new shift. A shift that has started cannot be cancelled; use closure instead.</p>
+  <h3>Worker acknowledgement</h3>
+  <p>Each worker scans their certificate on the Scanner to acknowledge the shift. The permit view shows how many workers have acknowledged.</p>
+</section>
+
+<section id="induction">
+  <h2 class="sec">7. Worker induction and your QR code</h2>
+  <p>Only workers who have completed the safety induction can be added to a permit. You must be inducted before you can work on a permit, and before you can sign on the Scanner.</p>
+  <h3>How to get inducted</h3>
+  <ul>
+    <li><b>Online, through the security gate:</b> complete the induction form at the gate before you enter the plant.</li>
+    <li><b>Offline, at the Safety Dept:</b> attend the induction in person at the Safety &amp; Environment Dept.</li>
+  </ul>
+  <h3>Your QR code</h3>
+  <p>When your induction is recorded, you receive an <b>email with your QR code</b>. This QR code is your signing mode:</p>
+  <ul>
+    <li>Save the email, or print the QR code and keep it with your work card.</li>
+    <li>On site, show your QR code to the Scanner to acknowledge a shift and to sign for Work Start, Work Stop and closure.</li>
+    <li>Do not share your QR code with anyone else. Anyone holding it can sign for you.</li>
+  </ul>
+  <div class="note">If you did not receive your QR code email after your induction, contact the Safety &amp; Environment Dept. Do not start work until you have your QR code.</div>
+  <div class="warn">Your induction has an expiry date. If it expires, you cannot be added to new permits or sign on the Scanner until you are inducted again.</div>
+</section>
+
+<section id="scanner">
+  <h2 class="sec">8. Scanner (Job Performer)</h2>
+  <p>Open the <b>Job Performer scanner</b> from the sign-in page, or from the link in the app. It works on a phone.</p>
+  <ul>
+    <li><b>Acknowledge</b> the shift by showing your QR code (from your induction email) at the scanner.</li>
+    <li><b>Work Start</b> when work begins, and <b>Work Stop</b> when it ends. A large confirmation shows, with a sound and vibration.</li>
+    <li><b>Closure:</b> the Job Performer confirms completion on the Scanner during closure.</li>
+  </ul>
+  <div class="note">If there is no connection, the scan is saved on the phone and sent automatically when the connection returns. A dot in the header shows the sync status: green (synced), amber (waiting to sync), grey (offline).</div>
+  <div class="warn">If the Job Performer does not record Work Stop, the system stops the shift at its scheduled end time and emails the Originator and the Acceptor. The stop time recorded is the scheduled end time.</div>
+</section>
+
+<section id="gas">
+  <h2 class="sec">9. Gas tests</h2>
+  <p>Gas readings are recorded for each shift. Safe limits are O₂ 19.5%–23.5%, and the readings must be within the limits before work starts. Readings outside the limits are highlighted on the printout.</p>
+</section>
+
+<section id="closure">
+  <h2 class="sec">10. Closing a permit</h2>
+  <ol>
+    <li>The Originator selects <b>Initiate Closure</b> on an active permit, and holds the button for about a second to confirm.</li>
+    <li><b>Every shift that was active must have a Work Stop recorded</b> before closure can start. The system names any shift still open.</li>
+    <li>The Job Performer confirms completion on the Scanner.</li>
+    <li>The Originator, Safety and Acceptor sign the closure in turn.</li>
+    <li>When the Acceptor signs, the permit is closed.</li>
+  </ol>
+  <div class="note">The closure card on the permit view shows the job status, remarks and each closure signature with its time.</div>
+</section>
+
+<section id="view">
+  <h2 class="sec">11. The permit view</h2>
+  <ul>
+    <li><b>Next step</b> at the top tells you who needs to act.</li>
+    <li><b>Approval workflow</b> shows each sign-off, worker acknowledgement, Work Start and Work Stop, and the closure steps once closure begins.</li>
+    <li><b>Shift-wise record</b> shows each shift with its workers, gas tests and signatures. Finished shifts are collapsed; select one to open it.</li>
+    <li><b>Refresh</b> reloads the permit.</li>
+    <li><b>Audit trail</b> (in the left column) lists every action. It is collapsed by default; select its heading to open it.</li>
+  </ul>
+</section>
+
+<section id="print">
+  <h2 class="sec">12. Printing</h2>
+  <p>Select <b>Print</b> on the permit view. Choose <i>Full history</i> to print every shift, or <i>Current shift only</i>. The printout includes the permit details, hazards and PPE, gas tests, the Tool Box Talk for each shift, the workers for every shift, the signatures and the closure status.</p>
+</section>
+
+<section id="notify">
+  <h2 class="sec">13. Notifications</h2>
+  <p>Alerts appear in the bell at the top of the screen. Emails also go out for approvals, activation, closure, rejection, cancellation and automatic shift stops.</p>
+  <p>To choose which emails you receive, open your <b>profile</b> and tick the emails you want under <i>Email notifications</i>. Alerts still appear in the app. Select <b>Save email preferences</b>.</p>
+</section>
+
+<section id="trouble">
+  <h2 class="sec">14. Troubleshooting</h2>
+  <table>
+    <tr><th>Problem</th><th>What to check</th></tr>
+    <tr><td>Cannot start closure</td><td>Every shift that was active must have Work Stop recorded. The permit must be Active.</td></tr>
+    <tr><td>Cannot add a shift</td><td>The permit must be Active, or the current shift must be cancelled first. An expired permit cannot have shifts added.</td></tr>
+    <tr><td>Cannot create a permit</td><td>You may have reached the limit of permits waiting for closure. Complete closure of an existing permit.</td></tr>
+    <tr><td>Worker warning on a new permit</td><td>The named worker is on another permit still in progress. Confirm with the supervisor.</td></tr>
+    <tr><td>Worker not found when adding to a permit</td><td>The worker has not completed the safety induction, or the induction has expired.</td></tr>
+    <tr><td>Worker did not receive the QR code email</td><td>Contact the Safety &amp; Environment Dept. Check the spam folder first.</td></tr>
+    <tr><td>Scanner does not accept the QR code</td><td>Check that the induction is still valid. Show the QR code from your latest induction email.</td></tr>
+    <tr><td>Email not received</td><td>Check your email preferences in your profile, and check your spam folder.</td></tr>
+    <tr><td>Scanner shows old behaviour</td><td>Close and reopen the scanner. It keeps a copy of the page, so it may need a moment to update.</td></tr>
+    <tr><td>Still stuck</td><td>Contact the Safety &amp; Environment Dept, or the system Admin, with the permit number.</td></tr>
+  </table>
+</section>
+
+</main>
+</div>
+</body>
+</html>
