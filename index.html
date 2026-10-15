@@ -4430,6 +4430,9 @@ function buildView(el, p, log, tests, scans, sigs) {
   // Edit button shown above (strict originator check)
   if (['Active','Pending Safety','Pending Duty Officer','Pending Acceptor'].includes(p.status))
     acts+=`<button class="btn btn-ghost btn-sm" data-on-click="openGasModal('${p.permitNo}','${ex.currentShiftId||''}')">🧪 Gas Test</button>`;
+  // Admin: repair a permit whose status no longer matches its shifts
+  if ((CU.roles||[CU.role]).includes('Admin') && p.status==='Pending Worker Acknowledgement' && (ex.shifts||[]).some(s=>s.shiftStatus==='Completed'||s.shiftStatus==='Active'))
+    acts+=`<button class="btn btn-ghost btn-sm" data-on-click="repairStatus(&quot;${p.permitNo}&quot;)">🔧 Repair status</button>`;
   // Originator can add new work shift on active permit
   if (p.status==='Active' && isOrig)
     acts+=`<button class="btn btn-ghost btn-sm" data-on-click="openAddShiftModal('${p.permitNo}')">➕ Add Shift</button>`;
@@ -5976,7 +5979,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       const cancelled = sh.shiftStatus === 'Cancelled';
       const shiftCell = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">`
         + `<div style="font-size:7.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
-        + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date, sh.shiftNo))}</div>`
+        + `<div style="font-size:8px;font-weight:700">${esc2(fmtShiftDate(sh.date || (sh.shiftNo === 1 ? ((ex.workEntries || [])[0] || {}).date : ''), sh.shiftNo))}</div>`
         + `<div style="font-size:7.5px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
         + `</td>`;
       if (cancelled) {
@@ -6421,16 +6424,16 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Job Completion Status</div>
       <div style="margin-top:3px;font-size:8.5px">
-        ${chk(ex.completionStatus==='Completed')} Job completed &amp; housekeeping done &nbsp;&nbsp;
-        ${chk(ex.completionStatus==='Incomplete')} Job incomplete
+        ${chk((ex.completionStatus || ex.closureJobStatus)==='Completed')} Job completed &amp; housekeeping done &nbsp;&nbsp;
+        ${chk((ex.completionStatus || ex.closureJobStatus)==='Incomplete')} Job incomplete
       </div>
       ${ex.completionReason?`<div style="font-size:7.5px;margin-top:2px">Reason: ${esc2(ex.completionReason)}</div>`:''}
     </td>
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Handover Confirmation</div>
       <div style="margin-top:3px;font-size:8.5px">
-        ${chk(ex.handoverOriginator)} Handed over to Permit Originator<br>
-        ${chk(ex.handoverSafety)} Handed over to Safety In-Charge
+        ${chk(ex.handoverOriginator || !!ex.closureJobStatus)} Handed over to Permit Originator<br>
+        ${chk(ex.handoverSafety || !!(ex.closureSigns || {})['Closure-Safety'])} Handed over to Safety In-Charge
       </div>
       <div style="margin-top:3px;font-size:8px">Associated Permit Status:
         ${chk(ex.assocPermitStatus==='Open')} Open &nbsp;
@@ -7070,6 +7073,14 @@ async function savePrefs() {
   load(true);
   try { await api('setNotifPrefs', { prefs }); load(false); toast('Email preferences saved', 'ok'); }
   catch (e) { load(false); toast(e.message, 'err'); }
+}
+// Admin: recalculate the permit's status from its shifts
+async function repairStatus(no) {
+  try {
+    const r = await api('repairPermitStatus', { permitNo: no });
+    toast('Status repaired: ' + r.status, 'ok');
+    loadView(no);
+  } catch (e) { toast(e.message, 'err'); }
 }
 function openProfile() {
   loadNotifPrefs();
