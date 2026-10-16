@@ -688,9 +688,20 @@ async function loadPermitList() {
 function selectPermit(p) {
   // Haptic feedback
   if (navigator.vibrate) navigator.vibrate(8);
-  _permit = typeof p==='string' ? JSON.parse(p) : p;
-  renderStep2();
-  goStep(2);
+  const brief = typeof p==='string' ? JSON.parse(p) : p;
+  // The list only carries a summary; load the full permit (hazards, PPE, validity) before showing it
+  load(true, 'Loading permit…');
+  api('getPermitByNo', {permitNo: brief.permitNo}).then(full => {
+    load(false);
+    _permit = full ? Object.assign(full, {_fullLoaded: true}) : brief;
+    renderStep2();
+    goStep(2);
+  }).catch(() => {
+    load(false);
+    _permit = brief;
+    renderStep2();
+    goStep(2);
+  });
 }
 
 // ── Worker list ────────────────────────────────────────────
@@ -734,7 +745,7 @@ function renderScannerPermitDetails(p, ex) {
       + '</div>';
   }).join('') || '<div style="font-size:11px;color:rgba(255,255,255,.4)">No shift data</div>';
 
-  return '<details style="margin-top:10px">'
+  return '<details open style="margin-top:10px">'
     + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:rgba(255,255,255,.6);list-style:none">▸ Hazards, PPE, Emergency &amp; Shift Workers</summary>'
     + '<div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.08)">'
       + '<div class="info-label">Hazards Identified</div><div style="margin-top:3px">'+hazardsHtml+'</div>'
@@ -822,7 +833,27 @@ function renderStep2() {
     return;
   }
   _action = actions[0].id;
-  document.getElementById('action-chips').innerHTML = actions.map(a =>
+  // Workflow strip: the scanner steps for this permit, with the current step highlighted
+  const _cur = (ex.shifts||[]).find(s => s.shiftId === ex.currentShiftId) || (ex.shifts||[]).slice(-1)[0] || {};
+  const _wfSteps = [
+    { id:'Acknowledgement', label:'Acknowledge', done: _cur.workerAckTotal > 0 && _cur.workerAckCount >= _cur.workerAckTotal },
+    { id:'Start',           label:'Work Start',  done: !!(_cur.jobStartTime || p.jobStartTime) },
+    { id:'Stop',            label:'Work Stop',   done: !!(_cur.jobStopTime || p.jobStopTime) },
+    { id:'Closure',         label:'Closure',     done: p.status === 'Closed' }
+  ];
+  const _wfCurrent = actions[0].id;
+  const workflowHtml = '<div style="display:flex;align-items:flex-start;width:100%;margin-bottom:10px">'
+    + _wfSteps.map((w, i) => {
+        const isCur = w.id === _wfCurrent;
+        const col = w.done ? '#22d3a0' : (isCur ? '#60a5fa' : 'rgba(255,255,255,.3)');
+        const dot = '<div style="width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;'
+          + 'background:' + (w.done ? '#22d3a0' : 'transparent') + ';border:2px solid ' + col + ';color:' + (w.done ? '#0f172a' : col) + '">' + (w.done ? '✓' : (i+1)) + '</div>';
+        const line = i < _wfSteps.length - 1 ? '<div style="flex:1;height:2px;margin-top:11px;background:' + (w.done ? '#22d3a0' : 'rgba(255,255,255,.15)') + '"></div>' : '';
+        return '<div style="display:flex;flex-direction:column;align-items:center;min-width:52px">' + dot
+          + '<div style="font-size:10px;margin-top:4px;color:' + (isCur ? '#93c5fd' : 'rgba(255,255,255,.6)') + ';font-weight:' + (isCur ? '700' : '500') + ';text-align:center">' + w.label + '</div></div>' + line;
+      }).join('')
+    + '</div>';
+  document.getElementById('action-chips').innerHTML = workflowHtml + actions.map(a =>
     `<button class="action-chip${a.id===_action?' active':''}${(a.id==='Start'||a.id==='Stop')?' primary-action':''}" data-on-click="setAction('${a.id}',this)">${esc(a.label)}</button>`
   ).join('');
 
@@ -870,6 +901,12 @@ function renderWorkerList() {
       }).catch(()=>load(false));
       return;
     }
+  }
+  // Acknowledgement: workers who have already acknowledged this shift are not listed again
+  if (!_isDailyMode && _action === 'Acknowledgement') {
+    const _total = workers.length;
+    workers = workers.filter(w => !w.acked);
+    if (!workers.length && _total) { el.innerHTML = '<div style="text-align:center;color:#6ee7b7;font-size:14px;padding:20px">✅ All workers have acknowledged this shift.</div>'; el._workers = []; return; }
   }
   if (!workers.length) { el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.4);font-size:14px;padding:20px">No workers found in this permit.<br><span style="font-size:11px;opacity:.6">Ensure workers were added in Section 7.</span></div>'; return; }
 
