@@ -4027,6 +4027,9 @@ function renderEditForm(p) {
     frm.querySelectorAll('[name=hazard]').forEach(cb=>{ cb.checked=p.hazards&&p.hazards.includes(cb.value); });
     // Pre-check PPE
     frm.querySelectorAll('[name=ppe]').forEach(cb=>{ cb.checked=p.ppeControls&&p.ppeControls.includes(cb.value); });
+    // Restore the work entries and their workers so they can be changed or removed
+    _workEntries = JSON.parse(JSON.stringify(ex.workEntries||[]));
+    renderEntriesList();
     // Store original permit no for update
     frm.dataset.editingPermitNo = p.permitNo;
     // Change submit button text
@@ -4405,7 +4408,8 @@ function buildView(el, p, log, tests, scans, sigs) {
     acts+=`<button class="btn btn-green" data-on-click="doApprove('${p.permitNo}','Acceptor')">Approve</button>
            <button class="btn btn-red"   data-on-click="doReject('${p.permitNo}','Acceptor')">✕ Reject</button>`;
   // Edit: only the originating user (strict email match, not Admin role)
-  if (p.status==='Pending Acceptor' && CU.email===p.originatorEmail)
+  // Edit: the originator may edit until the Acceptor accepts (Pending Worker Acknowledgement or Pending Acceptor)
+  if (['Pending Worker Acknowledgement','Pending Acceptor'].includes(p.status) && CU.email===p.originatorEmail)
     acts+=`<button class="btn btn-ghost btn-sm" data-on-click="openEditPermit('${p.permitNo}')" style="color:var(--blue)">✏️ Edit Permit</button>`;
   if (p.status==='Pending Safety'&&isSaf)
     acts+=`<button class="btn btn-green" data-on-click="doApprove('${p.permitNo}','Safety')">Approve</button>
@@ -4440,8 +4444,7 @@ function buildView(el, p, log, tests, scans, sigs) {
   acts+=`<button class="btn btn-ghost btn-sm" data-on-click="printPermit('${p.permitNo}')" style="color:var(--slate)">🖨 Print</button>`;
   // Originator can edit before Acceptor approves
   // Edit button shown above (strict originator check)
-  if (['Active','Pending Safety','Pending Duty Officer','Pending Acceptor'].includes(p.status))
-    acts+=`<button class="btn btn-ghost btn-sm" data-on-click="openGasModal('${p.permitNo}','${ex.currentShiftId||''}')">🧪 Gas Test</button>`;
+  acts+=`<button class="btn btn-ghost btn-sm" data-on-click="scrollToGas()">🧪 Gas Test Readings (${(tests||[]).length})</button>`;
   // Admin: repair a permit whose status no longer matches its shifts
   if ((CU.roles||[CU.role]).includes('Admin') && p.status==='Pending Worker Acknowledgement' && (ex.shifts||[]).some(s=>s.shiftStatus==='Completed'||s.shiftStatus==='Active'))
     acts+=`<button class="btn btn-ghost btn-sm" data-on-click="repairStatus(&quot;${p.permitNo}&quot;)">🔧 Repair status</button>`;
@@ -4641,7 +4644,7 @@ function buildView(el, p, log, tests, scans, sigs) {
       </div>
 
       <!-- Gas Tests -->
-      <div class="card">
+      <div class="card" id="gas-records">
         <div class="form-section-header">
           <div class="fs-num">05</div><div class="fs-title">Gas Test Records</div>
           ${['Active','Pending Safety','Pending Duty Officer'].includes(p.status)?`<button class="btn btn-ghost btn-xs" style="margin-left:auto" data-on-click="openGasModal('${p.permitNo}','${ex.currentShiftId||''}')">🧪 Add Reading</button>`:''}
@@ -4709,38 +4712,6 @@ function buildView(el, p, log, tests, scans, sigs) {
 
       
 
-      <!-- Audit Trail (collapsible, left column) -->
-      <details class="card" style="padding:0">
-        <summary style="cursor:pointer;padding:16px 18px;font-weight:700;font-size:13px;color:var(--navy);list-style:none;display:flex;align-items:center;gap:8px">📋 Audit Trail <span style="font-weight:500;color:var(--slate);font-size:12px">(tap to show / hide)</span></summary>
-        <div style="padding:0 18px 18px">
-        ${auditTable(log, sigMap, sigs)}
-
-        <!-- Worker Scans -->
-        ${scans.length?`<div style="margin-top:12px">
-          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
-
-
-          <table style="width:100%;border-collapse:collapse;font-size:12px">
-            <tr style="background:#f8fafc">
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
-              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
-            </tr>
-            ${scans.map(s=>`<tr>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
-              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
-            </tr>`).join('')}
-          </table>
-        </div>`:''}
-
-      </div>
-      </details>
-
       <!-- Permit closure status -->
       <div class="card">
         <div class="form-section-header"><div class="fs-num">🔏</div><div class="fs-title">Permit Closure</div></div>
@@ -4802,6 +4773,38 @@ function buildView(el, p, log, tests, scans, sigs) {
       </div>
 
       
+
+      <!-- Events (collapsible, left column, below closure) -->
+      <details class="card" style="padding:0">
+        <summary style="cursor:pointer;padding:16px 18px;font-weight:700;font-size:13px;color:var(--navy);list-style:none;display:flex;align-items:center;gap:8px">📋 Events <span style="font-weight:500;color:var(--slate);font-size:12px">(tap to show / hide)</span></summary>
+        <div style="padding:0 18px 18px">
+        ${auditTable(log, sigMap, sigs)}
+
+        <!-- Worker Scans -->
+        ${scans.length?`<div style="margin-top:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px">Worker QR Sign Records</div>
+
+
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <tr style="background:#f8fafc">
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Name</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Company</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Cert No.</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Action</th>
+              <th style="padding:6px 8px;border:1px solid #e2e8f0;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.3px">Date & Time</th>
+            </tr>
+            ${scans.map(s=>`<tr>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0">${esc(s.workerName||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${esc(s.contractor||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px">${esc(s.certNo||'')}</td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0"><span style="padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;background:${s.scanType==='Acknowledgement'?'#dcfce7':s.scanType==='Start'?'#eff6ff':s.scanType==='Stop'?'#fef3c7':'#f3e8ff'};color:${s.scanType==='Acknowledgement'?'#14532d':s.scanType==='Start'?'#1e40af':s.scanType==='Stop'?'#92400e':'#6b21a8'}">${esc(s.scanType||'')}</span></td>
+              <td style="padding:5px 8px;border:1px solid #e2e8f0;font-size:11px;color:var(--slate)">${fmtDT(s.time)}</td>
+            </tr>`).join('')}
+          </table>
+        </div>`:''}
+
+      </div>
+      </details>
 
     </div>
 
@@ -6665,7 +6668,7 @@ function nextActionMsg(p, ex, cur) {
   }
   if (!cur) return '';
   const s = cur.shiftStatus;
-  if (s === 'Pending Worker Acknowledgement') return '✍ Waiting for workers to scan QR (' + (cur.workerAckCount||0) + '/' + (cur.workerAckTotal||0) + ')';
+  if (s === 'Pending Worker Acknowledgement') return '✍ Waiting for workers Acknowledgment (' + (cur.workerAckCount||0) + '/' + (cur.workerAckTotal||0) + ')';
   if (s === 'Pending Acceptor')       return '⏳ Waiting for Acceptor' + (p.acceptorName ? ': ' + p.acceptorName : '');
   if (s === 'Pending Safety')         return '⏳ Waiting for Safety In-Charge' + (p.safetyName ? ': ' + p.safetyName : '');
   if (s === 'Pending Duty Officer')   return '⏳ Waiting for Duty Officer endorsement';
@@ -6811,34 +6814,7 @@ function renderShiftsTimeline(shifts, ex, sigs, gasTests, permitNo, p) {
           +'</tr></thead>'
           +'<tbody>'+workerRows+'</tbody>'
         +'</table>'
-        +(function(){
-          var shiftGas = gasTests.filter(function(g){ return g.shiftId===sh.shiftId; });
-          var gasRows = shiftGas.map(function(g){
-            var o2ok = g.o2>=19.5 && g.o2<=23.5;
-            return '<tr>'
-              +'<td style="padding:4px 8px;border:1px solid #e2e8f0;font-weight:700;color:'+(o2ok?'#14532d':'#991b1b')+'">'+(g.o2!==''&&g.o2!==undefined?g.o2:'—')+'</td>'
-              +'<td style="padding:4px 8px;border:1px solid #e2e8f0">'+(g.hc!==''&&g.hc!==undefined?g.hc:'—')+'</td>'
-              +'<td style="padding:4px 8px;border:1px solid #e2e8f0">'+(g.toxic!==''&&g.toxic!==undefined?g.toxic:'—')+'</td>'
-              +'<td style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b">'+esc(g.by||'—')+'</td>'
-              +'<td style="padding:4px 8px;border:1px solid #e2e8f0;font-size:10px;color:#64748b">'+fd(g.time)+'</td>'
-            +'</tr>';
-          }).join('');
-          return '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #e2e8f0">'
-            +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">'
-              +'<span style="font-size:10px;font-weight:700;color:#64748b;text-transform:uppercase">🧪 Gas Test Readings ('+shiftGas.length+')</span>'
-              +'<button type="button" class="btn btn-ghost btn-xs" data-on-click="openGasModal(\''+permitNo+'\',\''+sh.shiftId+'\')">+ Add Reading</button>'
-            +'</div>'
-            +(shiftGas.length
-              ? '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f8fafc">'
-                +'<th style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b">O₂ %</th>'
-                +'<th style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b">HC %</th>'
-                +'<th style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b">Toxic ppm</th>'
-                +'<th style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b;text-align:left">Tested By</th>'
-                +'<th style="padding:4px 8px;border:1px solid #e2e8f0;color:#64748b;text-align:left">Time</th>'
-                +'</tr></thead><tbody>'+gasRows+'</tbody></table>'
-              : '<div style="font-size:11px;color:#94a3b8;padding:6px 0">No gas test recorded for this shift yet.</div>')
-          +'</div>';
-        })()
+        
       +'</div>'
     +'</div>';
   });
@@ -7085,6 +7061,10 @@ async function savePrefs() {
   load(true);
   try { await api('setNotifPrefs', { prefs }); load(false); toast('Email preferences saved', 'ok'); }
   catch (e) { load(false); toast(e.message, 'err'); }
+}
+// Jump to the Gas Test Records card
+function scrollToGas() {
+  document.getElementById('gas-records')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 // Admin: recalculate the permit's status from its shifts
 async function repairStatus(no) {
