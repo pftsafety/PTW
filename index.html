@@ -4224,7 +4224,7 @@ async function submitForm(e) {
 
   // Warn if a listed worker is already on another permit in progress
   const _certs = _workEntries.flatMap(en => (en.workers || []).map(w => w.certNo));
-  if (!(await warnWorkerConflicts(_certs, editingNo || ''))) return;
+  if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) return;
 
   // Open originator signature modal — submit happens after signing
   openSigModal(
