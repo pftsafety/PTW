@@ -1,4 +1,4 @@
-const CACHE = 'hll-scanner-v14';
+const CACHE = 'hll-scanner-v16';
 const ASSETS = [
   './',
   './index.html',
