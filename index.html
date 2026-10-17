@@ -5406,9 +5406,6 @@ async function warnWorkerConflicts(certNos, permitNo) {
   return r.ok;
 }
 async function doApprove(no, role) {
-  const _pv = (_currentPermitView && _currentPermitView.permitNo === no) ? _currentPermitView : null;
-  const _go = await confirmSheet({ title: 'Continue to '+role+' sign-off?', lines: signSummaryLines(_pv, no, role), okLabel: 'Continue to signature' });
-  if (!_go.ok) return;
   // If Acceptor, validate all workers have acked first
   if (role === 'Acceptor') {
     load(true);
@@ -5818,27 +5815,40 @@ if (document.readyState === 'loading') {
 // PRINT PERMIT — SAF 21/R01 FORMAT
 // ══════════════════════════════════════════════════════════════
 async function printPermit(permitNo) {
+  // Open the print window straight away (browsers allow it inside the click), then fill it in
+  const w = window.open('', '_blank', 'width=900,height=700');
+  if (!w) { toast('Allow popups to print', 'err'); return; }
+  w.document.write('<p style="font-family:sans-serif;padding:24px;color:#334155">Preparing permit…</p>');
   load(true);
   try {
-    const [p, sigs, log, gasTests] = await Promise.all([
-      api('getPermitByNo',    {permitNo}),
-      api('getSignatureImages',{permitNo}).catch(()=>[]),  // full base64 for print
-      api('getApprovalLog',   {permitNo}).catch(()=>[]),
-      api('getGasTests',      {permitNo}).catch(()=>[])
-    ]);
+    let p, sigs = [], log = [], tests = [], scans = [];
+    try {
+      const v = await api('getPermitView', { permitNo });
+      p = v && v.permit; sigs = v.sigs || []; log = v.log || []; tests = v.tests || []; scans = v.scans || [];
+    } catch (err) {
+      if (!/Unknown action/i.test(err.message || '')) throw err;
+      // Server not yet updated to the combined call: use the separate calls
+      [p, sigs, log, tests] = await Promise.all([
+        api('getPermitByNo', { permitNo }),
+        api('getSignatureImages', { permitNo }).catch(() => []),
+        api('getApprovalLog', { permitNo }).catch(() => []),
+        api('getGasTests', { permitNo }).catch(() => [])
+      ]);
+    }
     load(false);
-    if (!p) { toast('Permit not found','err'); return; }
-    const _pick = await confirmSheet({ title:'Print options', lines:['What should the printout include?'], choices:['Full history (all shifts)','Current shift only'], okLabel:'Print' });
-    if (!_pick.ok) return;
-    window._printCurrentOnly = _pick.choice === 'Current shift only';
-    const html = buildPrintHTML(p, sigs, log, gasTests);
-    const w = window.open('','_blank','width=900,height=700');
-    if (!w) { toast('Allow popups to print','err'); return; }
+    if (!p) { w.close(); toast('Permit not found', 'err'); return; }
+    window._printCurrentOnly = false;   // always the full permit
+    const html = buildPrintHTML(p, sigs, log, tests, scans);
+    w.document.open();
     w.document.write(html);
     w.document.close();
     w.focus();
-    setTimeout(()=>{ w.print(); }, 600);
-  } catch(e) { load(false); toast(e.message,'err'); }
+    setTimeout(() => { w.print(); }, 300);
+  } catch (e) {
+    load(false);
+    try { w.close(); } catch (x) {}
+    toast(e.message, 'err');
+  }
 }
 
 function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
