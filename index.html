@@ -4378,6 +4378,18 @@ function shiftStartDisplay(p, ex) {
   return fd(p.validFrom);
 }
 
+// Tool Box Talk answers as chips (Yes / No / NA), used for each shift
+function tbtChipsHtml(items) {
+  return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:6px">' + TBT.map(q => {
+    const v = (items || {})[q.k] || '';
+    const bg  = v === 'Yes' ? '#f0fdf4' : (v === 'No' ? '#fef2f2' : '#f8fafc');
+    const col = v === 'Yes' ? '#15803d' : (v === 'No' ? '#dc2626' : '#64748b');
+    return '<div style="background:' + bg + ';border-radius:8px;padding:7px 9px">'
+      + '<div style="font-size:11px;color:#475569">(' + q.k + ') ' + esc(q.l) + '</div>'
+      + '<div style="font-size:12px;font-weight:700;color:' + col + '">' + esc(v || '—') + '</div></div>';
+  }).join('') + '</div>';
+}
+
 function buildView(el, p, log, tests, scans, sigs) {
   scans = scans||[]; sigs = sigs||[];
   _currentPermitView = p;                // store for openAddItemsModal
@@ -4394,6 +4406,13 @@ function buildView(el, p, log, tests, scans, sigs) {
   });
 
   const _cl = closureSteps(p, ex);
+  // Tool Box Talk for each shift after the first (Shift 1 is shown above)
+  const shiftTbtBlocks = (ex.shifts || []).map((sh, i) => ({ sh, i }))
+    .filter(x => x.i > 0 && x.sh.tbt && x.sh.tbt.items)
+    .map(({ sh, i }) => '<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">'
+      + 'Shift ' + (sh.shiftNo || i+1) + ' · ' + esc(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1)) + ' · ' + esc(shiftNameFor(sh, null) || '')
+      + (sh.tbt.conductedBy ? ' · Conducted by ' + esc(sh.tbt.conductedBy) : '') + '</div>'
+      + tbtChipsHtml(sh.tbt.items) + '</div>').join('');
   // Action buttons
   const _dailyEntries    = ex.dailyEntries || [];
   const _pendingDailyAcc = _dailyEntries.find(e => e.status === 'Pending Acceptor');
@@ -4658,6 +4677,7 @@ function buildView(el, p, log, tests, scans, sigs) {
         ${tbtHtml}
         ${tbt.notes?`<div style="margin-top:8px;font-size:12px;color:var(--slate)"><strong>Notes:</strong> ${esc(tbt.notes)}</div>`:''}
         ${tbt.conductedBy?`<div style="margin-top:6px;font-size:12px;color:var(--slate)"><strong>Training given by:</strong> ${esc(tbt.conductedBy)}</div>`:''}
+        ${shiftTbtBlocks}
       </div>
 
       <!-- Declarations — Section 07 -->
@@ -5949,6 +5969,15 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     + pBox(`<div class="field-label">Department Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:7.5px;margin-top:3px">${EXC_DEPTS.map(d => `<span>${esc2(d)}: <b>${esc2((xv.deptChecks||{})[d] || '—')}</b></span>`).join('')}</div>`)
     + `</table>` : '';
   const tbtKeys = TBT.map(t => t.k);
+  // Attached supporting permit: printed on its own page at the end
+  const supUp = (ex.uploads || {})['Supporting Permit'] || null;
+  const supIsImg = !!(supUp && /\.(png|jpe?g|gif|webp)$/i.test(supUp.fileName || ''));
+  const supAttachPage = supUp ? `<div style="page-break-before:always;padding:4px">`
+    + `<div style="font-size:10px;font-weight:700;margin-bottom:6px">ATTACHED SUPPORTING PERMIT — ${esc2(supUp.fileName || '')}</div>`
+    + (supIsImg
+        ? `<img src="https://drive.google.com/uc?export=view&id=${supUp.fileId}" style="max-width:100%">`
+        : `<iframe src="https://drive.google.com/file/d/${supUp.fileId}/preview" style="width:100%;height:950px;border:1px solid #000"></iframe>`)
+    + `<div style="font-size:8px;margin-top:6px">${esc2(supUp.url || '')}</div></div>` : '';
   // Shift-wise Tool Box Talk: one row per question (full text), one column per shift
   // Section 7: workers for every shift (falls back to the work entries for older permits)
   const sec7 = (ex.shifts || []).length
@@ -6227,9 +6256,9 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     <td colspan="4" style="border:1px solid #000;padding:3px">
       <div class="field-label">Supporting Permits Required</div>
       <div style="margin-top:3px;font-size:8.5px;display:flex;gap:16px;flex-wrap:wrap">
-        <span>${chk(ex.sup_elec_yn==='Yes')} Electrical Permit ${ex.elecSno?'(S.No: '+ex.elecSno+')':''}</span>
-        <span>${chk(ex.sup_exc_yn==='Yes')} Excavation Permit (SAF 21/R01B) ${ex.excSno?'(S.No: '+ex.excSno+')':''}</span>
-        <span>${chk(ex.sup_cs_yn==='Yes')} Confined Space Permit (SAF 21/R01A) ${ex.csSno?'(S.No: '+ex.csSno+')':''}</span>
+        <span>${chk(suppP.electrical)} Electrical Permit ${suppP.elecSno?'(S.No: '+suppP.elecSno+')':''}</span>
+        <span>${chk(suppP.excavation)} Excavation Permit (SAF 21/R01B) ${suppP.excSno?'(S.No: '+suppP.excSno+')':''}</span>
+        <span>${chk(suppP.confinedSpace)} Confined Space Permit (SAF 21/R01A) ${suppP.csSno?'(S.No: '+suppP.csSno+')':''}</span>
       </div>
     </td>
   </tr>
@@ -6291,20 +6320,20 @@ ${csBlock}${exBlock}
   </tr>
   <tr>
     <th style="background:#eee;text-align:left;width:26%">Parameter / Limit</th>
-    ${Array.from({length:7},(_,i)=>`<th style="background:#eee;text-align:center;width:10.5%">Day ${i+1}</th>`).join('')}
+    ${Array.from({length:7},(_,i)=>`<th style="background:#eee;text-align:center;width:10.5%">Reading ${i+1}</th>`).join('')}
   </tr>
   ${[
     {label:'O₂ Level (%) — 19.5–23.5', key:'o2'},
     {label:'HC (%) — Below LEL', key:'hc'},
     {label:'Toxic Gases (PPM) — Below TLV', key:'toxic'},
-    {label:'Tested By', key:'testedBy'},
-    {label:'Time of Test', key:'testTime'},
+    {label:'Tested By', key:'by'},
+    {label:'Time of Test', key:'time'},
   ].map((row,ri)=>`
   <tr style="${ri%2===1?'background:#f9f9f9':''}">
     <td style="font-size:8px">${row.label}</td>
     ${Array.from({length:7},(_,d)=>{
-      const t=(gasTests||[]).find(g=>parseInt(g.day)===d+1)||{};
-      return `<td style="text-align:center;font-size:8px">${esc2(t[row.key]||'')}</td>`;
+      const t=(gasTests||[]).map((g,gi)=>Object.assign({},g,{_col: parseInt(g.day)||(gi+1)})).find(g=>g._col===d+1)||{};
+      return `<td style="text-align:center;font-size:8px">${esc2(row.key==='time' ? (t.time ? fmtDT(t.time) : '') : (t[row.key]||''))}</td>`;
     }).join('')}
   </tr>`).join('')}
 </table>
@@ -6486,6 +6515,7 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
 </div>
 
 
+${supAttachPage}
 </body>
 </html>`;
 }
