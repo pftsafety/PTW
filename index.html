@@ -4674,6 +4674,7 @@ function buildView(el, p, log, tests, scans, sigs) {
       <!-- Tool Box Talk -->
       <div class="card">
         <div class="form-section-header"><div class="fs-num">06</div><div class="fs-title">Tool Box Talk</div></div>
+        ${(() => { const s1 = (ex.shifts || [])[0] || {}; return '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">Shift 1 · ' + esc(fmtShiftDate(shiftDateOf(s1, ex, 0), s1.shiftNo || 1)) + (shiftNameFor(s1, shiftEntry(ex, 0)) ? ' · ' + esc(shiftNameFor(s1, shiftEntry(ex, 0))) : '') + (tbt.conductedBy ? ' · Conducted by ' + esc(tbt.conductedBy) : '') + '</div>'; })()}
         ${tbtHtml}
         ${tbt.notes?`<div style="margin-top:8px;font-size:12px;color:var(--slate)"><strong>Notes:</strong> ${esc(tbt.notes)}</div>`:''}
         ${tbt.conductedBy?`<div style="margin-top:6px;font-size:12px;color:var(--slate)"><strong>Training given by:</strong> ${esc(tbt.conductedBy)}</div>`:''}
