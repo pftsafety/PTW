@@ -2051,6 +2051,7 @@ function logout() {
 }
 
 function launchApp() {
+  setTimeout(handlePrintHash, 400);   // a print link from the scanner prints as soon as the app is open
   const appEl=document.getElementById('app'); if(appEl) appEl.style.display='flex';
   ['login-screen','forgot-screen','setup-screen'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const sbName=document.getElementById('sb-name'); if(sbName) sbName.textContent=CU.name;
@@ -4406,13 +4407,16 @@ function buildView(el, p, log, tests, scans, sigs) {
   });
 
   const _cl = closureSteps(p, ex);
-  // Tool Box Talk for each shift after the first (Shift 1 is shown above)
+  // Tool Box Talk for each shift after the first (collapsible; the most recent one is open)
+  const _tbtIdx = (ex.shifts || []).map((sh, i) => ({ sh, i })).filter(x => x.i > 0 && x.sh.tbt && x.sh.tbt.items).map(x => x.i);
+  const _latestTbt = _tbtIdx.length ? Math.max(..._tbtIdx) : 0;
   const shiftTbtBlocks = (ex.shifts || []).map((sh, i) => ({ sh, i }))
     .filter(x => x.i > 0 && x.sh.tbt && x.sh.tbt.items)
-    .map(({ sh, i }) => '<div style="margin-top:12px"><div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">'
+    .map(({ sh, i }) => '<details ' + (i === _latestTbt ? 'open' : '') + ' style="margin-top:10px">'
+      + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">'
       + 'Shift ' + (sh.shiftNo || i+1) + ' · ' + esc(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1)) + ' · ' + esc(shiftNameFor(sh, null) || '')
-      + (sh.tbt.conductedBy ? ' · Conducted by ' + esc(sh.tbt.conductedBy) : '') + '</div>'
-      + tbtChipsHtml(sh.tbt.items) + '</div>').join('');
+      + (sh.tbt.conductedBy ? ' · Conducted by ' + esc(sh.tbt.conductedBy) : '') + '</summary>'
+      + tbtChipsHtml(sh.tbt.items) + '</details>').join('');
   // Action buttons
   const _dailyEntries    = ex.dailyEntries || [];
   const _pendingDailyAcc = _dailyEntries.find(e => e.status === 'Pending Acceptor');
@@ -4674,8 +4678,7 @@ function buildView(el, p, log, tests, scans, sigs) {
       <!-- Tool Box Talk -->
       <div class="card">
         <div class="form-section-header"><div class="fs-num">06</div><div class="fs-title">Tool Box Talk</div></div>
-        ${(() => { const s1 = (ex.shifts || [])[0] || {}; return '<div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">Shift 1 · ' + esc(fmtShiftDate(shiftDateOf(s1, ex, 0), s1.shiftNo || 1)) + (shiftNameFor(s1, shiftEntry(ex, 0)) ? ' · ' + esc(shiftNameFor(s1, shiftEntry(ex, 0))) : '') + (tbt.conductedBy ? ' · Conducted by ' + esc(tbt.conductedBy) : '') + '</div>'; })()}
-        ${tbtHtml}
+        ${(() => { const s1 = (ex.shifts || [])[0] || {}; const head = 'Shift 1 · ' + esc(fmtShiftDate(shiftDateOf(s1, ex, 0), s1.shiftNo || 1)) + (shiftNameFor(s1, shiftEntry(ex, 0)) ? ' · ' + esc(shiftNameFor(s1, shiftEntry(ex, 0))) : '') + (tbt.conductedBy ? ' · Conducted by ' + esc(tbt.conductedBy) : ''); return '<details ' + (_latestTbt === 0 ? 'open' : '') + ' style="margin-top:8px">' + '<summary style="cursor:pointer;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px">' + head + '</summary>' + tbtHtml + '</details>'; })()}
         ${tbt.notes?`<div style="margin-top:8px;font-size:12px;color:var(--slate)"><strong>Notes:</strong> ${esc(tbt.notes)}</div>`:''}
         ${tbt.conductedBy?`<div style="margin-top:6px;font-size:12px;color:var(--slate)"><strong>Training given by:</strong> ${esc(tbt.conductedBy)}</div>`:''}
         ${shiftTbtBlocks}
@@ -5835,11 +5838,12 @@ if (document.readyState === 'loading') {
 // ══════════════════════════════════════════════════════════════
 // PRINT PERMIT — SAF 21/R01 FORMAT
 // ══════════════════════════════════════════════════════════════
-async function printPermit(permitNo) {
-  // Open the print window straight away (browsers allow it inside the click), then fill it in
-  const w = window.open('', '_blank', 'width=900,height=700');
+async function printPermit(permitNo, inPlace) {
+  // Normal use: open the print window straight away (browsers allow it inside the click), then fill it in.
+  // inPlace: opened from the scanner's print link; print in this tab instead.
+  const w = inPlace ? window : window.open('', '_blank', 'width=900,height=700');
   if (!w) { toast('Allow popups to print', 'err'); return; }
-  w.document.write('<p style="font-family:sans-serif;padding:24px;color:#334155">Preparing permit…</p>');
+  if (!inPlace) w.document.write('<p style="font-family:sans-serif;padding:24px;color:#334155">Preparing permit…</p>');
   load(true);
   try {
     let p, sigs = [], log = [], tests = [], scans = [];
@@ -5857,7 +5861,7 @@ async function printPermit(permitNo) {
       ]);
     }
     load(false);
-    if (!p) { w.close(); toast('Permit not found', 'err'); return; }
+    if (!p) { if (!inPlace) w.close(); toast('Permit not found', 'err'); return; }
     window._printCurrentOnly = false;   // always the full permit
     const html = buildPrintHTML(p, sigs, log, tests, scans);
     w.document.open();
@@ -5867,9 +5871,17 @@ async function printPermit(permitNo) {
     setTimeout(() => { w.print(); }, 300);
   } catch (e) {
     load(false);
-    try { w.close(); } catch (x) {}
+    if (!inPlace) { try { w.close(); } catch (x) {} }
     toast(e.message, 'err');
   }
+}
+
+// Opened with #print=PTW-NO (from the scanner): print that permit once the app is open
+function handlePrintHash() {
+  const m = (window.location.hash || '').match(/^#print=(.+)$/);
+  if (!m) return;
+  try { history.replaceState(null, '', window.location.pathname); } catch (e) {}
+  printPermit(decodeURIComponent(m[1]), true);
 }
 
 function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
@@ -6367,29 +6379,6 @@ ${tbtShiftBlock}
      <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
      <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>`}
 </table>
-
-<!-- ════════ WORKER SIGN RECORDS ════════ -->
-${workerScans.length?`
-<table style="margin-top:3px">
-  <tr><td class="sec-head" colspan="5">Worker QR Sign Records (Induction Certificate Scans)</td></tr>
-  <tr>
-    <th style="background:#eee;width:5%;text-align:center">Sl.</th>
-    <th style="background:#eee;width:25%">Name</th>
-    <th style="background:#eee;width:22%">Company</th>
-    <th style="background:#eee;width:22%">Cert. No.</th>
-    <th style="background:#eee;width:14%">Action</th>
-    <th style="background:#eee;width:12%">Date & Time</th>
-  </tr>
-  ${workerScans.map((s,i)=>`<tr style="${i%2===1?'background:#f9f9f9':''}">
-    <td style="text-align:center;font-size:8px">${i+1}</td>
-    <td style="font-size:8px">${esc2(s.workerName||'')}</td>
-    <td style="font-size:8px">${esc2(s.contractor||'')}</td>
-    <td style="font-size:8px">${esc2(s.certNo||'')}</td>
-    <td style="font-size:8px;font-weight:700">${esc2(s.scanType||'')}</td>
-    <td style="font-size:7.5px">${fmtDT(s.time)}</td>
-  </tr>`).join('')}
-</table>`:''}
-
 
 <!-- ════════ SECTION 8: STATUS / COMPLETION ════════ -->
 <!-- ════════ DAY 2–7 DAILY WORK ENTRIES ════════ -->
