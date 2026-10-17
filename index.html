@@ -2676,6 +2676,7 @@ function loadList(scope) {
       </div>
       ${scope==='my'?'<div id="drafts-card"></div>':''}${extraFilterBar(scope, permits)}<div class="card"><div id="pt-${scope}">${permitTable(permits)}</div></div>`;
     if (scope === 'my') loadDraftsCard();
+    if (window['_tile_'+scope]) filterList(scope);   // a dashboard tile is applied on first render
   }).catch(e=>{el.innerHTML=`<div class="card"><div class="alert alert-error">❌ ${e.message}</div></div>`;});
 }
 
