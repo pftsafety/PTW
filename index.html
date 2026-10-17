@@ -1886,6 +1886,9 @@ function storageRemove(key) {
 
 
 function initApp() {
+  // Print link from the scanner (#print=PTW-NO): print the permit directly, without sign-in
+  const _pl = (window.location.hash || '').match(/^#print=(.+)$/);
+  if (_pl) { printPermit(decodeURIComponent(_pl[1]), true); return; }
   try {
     const saved = storageGet('ptw_s');
     if (saved) {
