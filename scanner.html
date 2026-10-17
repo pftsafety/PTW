@@ -757,8 +757,26 @@ function renderScannerPermitDetails(p, ex) {
     + '</details>';
 }
 
+// Print the permit from the scanner: opens the main app at this permit's print address
+function ensurePrintButton() {
+  const t = document.getElementById('step2-title');
+  if (!t || !_permit) return;
+  let b = document.getElementById('scan-print-btn');
+  if (!b) {
+    b = document.createElement('button');
+    b.id = 'scan-print-btn';
+    b.type = 'button';
+    b.textContent = '🖨 Print';
+    b.style.cssText = 'margin-left:auto;padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#e2e8f0;font-size:12px;font-weight:700;cursor:pointer';
+    b.onclick = () => { window.open('index.html#print=' + encodeURIComponent(_permit.permitNo), '_blank'); };
+    t.parentElement.style.display = 'flex';
+    t.parentElement.style.alignItems = 'center';
+    t.parentElement.appendChild(b);
+  }
+}
 function renderStep2() {
   const p = _permit; if(!p) return;
+  ensurePrintButton();
   const ex = p.extras || {};
   document.getElementById('step2-title').textContent = _isDailyMode ? 'Daily Worker Ack' : 'Select Worker';
 
@@ -885,7 +903,7 @@ function renderWorkerList() {
                  || ex.shifts[ex.shifts.length - 1];
     }
 
-    if (_action === 'Acknowledgement' && targetShift && targetShift.workers && targetShift.workers.length) {
+    if ((_action === 'Acknowledgement' || _action === 'Start' || _action === 'Stop') && targetShift && targetShift.workers && targetShift.workers.length) {
       // Tag each worker with the shiftId so the ack is recorded against THIS shift
       workers = targetShift.workers.map(w => ({ ...w, shiftId: targetShift.shiftId }));
     } else {
