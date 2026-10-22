@@ -5933,7 +5933,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     ${sigTD('Safety','4C — Safety In-Charge','SHE Department')}
     ${sigTD('Job Performer','4D — Job Performer','Start &amp; Stop Sign-off')}
   </tr>
-  ${ex.dutyOfficerRequired?`<tr><td colspan="2">${sigTD('Duty Officer','Duty Officer Endorsement','After-hours / Shift 3 work')}</td><td colspan="2" style="border:1px solid #000;padding:4px;font-size:9px;color:#555">Required for work outside 09:15–17:15 hrs or Shift 3 (22:00–06:00 hrs)</td></tr>`:''}
+  ${ex.dutyOfficerRequired?`<tr><td colspan="2">${sigTD('Duty Officer','Duty Officer Endorsement','After-hours / Shift 3 work')}</td><td colspan="2" style="border:1px solid #000;padding:4px;font-size:10px;color:#555">Required for work outside 09:15–17:15 hrs or Shift 3 (22:00–06:00 hrs)</td></tr>`:''}
 `;
 
   // Closure sign-offs are saved under exact closure roles and happen once per permit.
@@ -5949,56 +5949,56 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     const img = s
       ? `<img src="${s.signatureData}" alt="signature" style="display:block;height:42px;max-width:150px;object-fit:contain;margin:2px auto">`
       : '<div style="height:42px;border-bottom:1px dotted #999;margin:4px 0"></div>';
-    const via = (isJP && info) ? '<div style="font-size:8.5px;color:#15803d;font-weight:700">Signed via Job Performer scanner</div>' : '';
+    const via = (isJP && info) ? '<div style="font-size:9.5px;color:#15803d;font-weight:700">Signed via Job Performer scanner</div>' : '';
     return `<td style="border:1px solid #000;padding:4px 5px;vertical-align:top;width:25%">`
-      + `<div style="font-size:9px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>`
-      + `<div style="font-size:9px;color:#444;margin-bottom:3px">${sub||''}</div>${img}`
-      + `<div style="font-size:9px;font-weight:700">${esc2(name||'')}</div>`
+      + `<div style="font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>`
+      + `<div style="font-size:10px;color:#444;margin-bottom:3px">${sub||''}</div>${img}`
+      + `<div style="font-size:10px;font-weight:700">${esc2(name||'')}</div>`
       + via
-      + `<div style="font-size:8px;color:#555">${time ? 'Signed: ' + fmtDT(time) : ''}</div></td>`;
+      + `<div style="font-size:9px;color:#555">${time ? 'Signed: ' + fmtDT(time) : ''}</div></td>`;
   };
 
   const ppl = p.people || {};
   const desigFor = (role) => { const k = /originator/i.test(role) ? 'originator' : /acceptor/i.test(role) ? 'acceptor' : /safety/i.test(role) ? 'safety' : ''; return k ? desigLine(k) : ''; };
-  const desigLine = (k) => { const x = ppl[k] || {}; const t = [x.designation, x.department].filter(Boolean).join(', '); return t ? `<div style="font-size:10px;color:#333">${esc2(t)}</div>` : ''; };
+  const desigLine = (k) => { const x = ppl[k] || {}; const t = x.designation || ''; return t ? `<div style="font-size:11px;color:#333">${esc2(t)}</div>` : ''; };
   // ── Extra print sections: the details the permit view shows ──
   const suppP = p.supporting || {};
   const pcell = (label, val) => `<td style="width:25%;border:1px solid #000;padding:3px;vertical-align:top"><div class="field-label">${label}</div><div class="field-val">${val}</div></td>`;
   const pBox = (inner) => `<tr><td colspan="4" style="border:1px solid #000;padding:3px">${inner}</td></tr>`;
   const entries = ex.workEntries || [];
   const workRows = entries.length ? entries.map((e, i) => `<tr>`
-      + `<td style="border:1px solid #000;padding:2px;font-size:8.5px">${esc2(fmtShiftDate(e.date, i+1))}</td>`
-      + `<td style="border:1px solid #000;padding:2px;font-size:8.5px">${esc2(shiftNameFor({}, e) || '—')}</td>`
-      + `<td style="border:1px solid #000;padding:2px;font-size:8.5px">${esc2(e.from || '—')} – ${esc2(e.to || '—')}</td>`
-      + `<td style="border:1px solid #000;padding:2px;font-size:8.5px">${(e.workers || []).map(w => esc2(w.name)).join(', ') || '—'}</td></tr>`).join('')
-    : `<tr><td colspan="4" style="border:1px solid #000;padding:2px;font-size:8.5px">No work entries</td></tr>`;
+      + `<td style="border:1px solid #000;padding:2px;font-size:9.5px">${esc2(fmtShiftDate(e.date, i+1))}</td>`
+      + `<td style="border:1px solid #000;padding:2px;font-size:9.5px">${esc2(shiftNameFor({}, e) || '—')}</td>`
+      + `<td style="border:1px solid #000;padding:2px;font-size:9.5px">${esc2(e.from || '—')} – ${esc2(e.to || '—')}</td>`
+      + `<td style="border:1px solid #000;padding:2px;font-size:9.5px">${(e.workers || []).map(w => esc2(w.name)).join(', ') || '—'}</td></tr>`).join('')
+    : `<tr><td colspan="4" style="border:1px solid #000;padding:2px;font-size:9.5px">No work entries</td></tr>`;
   const medicalText = dash(ex.medicalCertRequired) + (ex.medicalCertDetails ? ' — ' + esc2(ex.medicalCertDetails) : '');
   const detailsBlock = `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Work Hours, Medical &amp; Other Details</td></tr>`
     + `<tr>${pcell('Duration', dash(ex.durationDays ? ex.durationDays + ' day(s)' : ''))}${pcell('Medical Certificate (Work at Height)', medicalText)}${pcell('Safety Harness No.', dash(ex.safetyHarnessNo))}${pcell('Permit Valid From', fmtDT(p.validFrom))}</tr>`
-    + pBox(`<div class="field-label">Work Entries (date · shift · work hours · workers)</div><table style="width:100%;border-collapse:collapse;margin-top:3px"><tr><th style="border:1px solid #000;font-size:8.5px;padding:2px;text-align:left">Date</th><th style="border:1px solid #000;font-size:8.5px;padding:2px;text-align:left">Shift</th><th style="border:1px solid #000;font-size:8.5px;padding:2px;text-align:left">Work hours</th><th style="border:1px solid #000;font-size:8.5px;padding:2px;text-align:left">Workers</th></tr>${workRows}</table>`)
+    + pBox(`<div class="field-label">Work Entries (date · shift · work hours · workers)</div><table style="width:100%;border-collapse:collapse;margin-top:3px"><tr><th style="border:1px solid #000;font-size:9.5px;padding:2px;text-align:left">Date</th><th style="border:1px solid #000;font-size:9.5px;padding:2px;text-align:left">Shift</th><th style="border:1px solid #000;font-size:9.5px;padding:2px;text-align:left">Work hours</th><th style="border:1px solid #000;font-size:9.5px;padding:2px;text-align:left">Workers</th></tr>${workRows}</table>`)
     + `</table>`;
   const cs = ex.confinedSpace;
   const csBlock = (suppP.confinedSpace && cs) ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Confined Space Entry Details — SAF 21/R01A</td></tr>`
     + `<tr>${pcell('Type', dash(cs.type))}${pcell('Location', dash(cs.location))}${pcell('Max Entrants', dash(cs.maxEntrants))}${pcell('O₂ Level (%)', dash(cs.o2Level))}</tr>`
     + `<tr>${pcell('Gas Level (PPM)', dash(cs.gasPPM))}${pcell('Warning Signs', dash(cs.warningSigns))}${pcell('Engineering Equipment', dash(cs.equip))}${pcell('Training (Job Performer)', dash(cs.training))}</tr>`
     + pBox(`<div class="field-label">Description of Work inside Confined Space</div><div class="field-val">${dash(cs.description)}</div>`)
-    + pBox(`<div class="field-label">Pre-Commencement Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:8.5px;margin-top:3px">${CS_CHECKS.map(ch => `<span>${chk(((cs.checks||{})[ch.key]) === 'Yes')} ${esc2(ch.label)} <b>(${esc2((cs.checks||{})[ch.key] || 'No')})</b></span>`).join('')}</div>`)
+    + pBox(`<div class="field-label">Pre-Commencement Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:9.5px;margin-top:3px">${CS_CHECKS.map(ch => `<span>${chk(((cs.checks||{})[ch.key]) === 'Yes')} ${esc2(ch.label)} <b>(${esc2((cs.checks||{})[ch.key] || 'No')})</b></span>`).join('')}</div>`)
     + `</table>` : '';
   const xv = ex.excavation;
   const exBlock = (suppP.excavation && xv) ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Excavation Details — SAF 21/R01B</td></tr>`
     + `<tr>${pcell('Location', dash(xv.location))}${pcell('Location Type', dash(xv.locationType))}${pcell('Size D × W × L (m)', dash(xv.depth) + ' × ' + dash(xv.width) + ' × ' + dash(xv.length))}${pcell('Excavation Carried Out By', dash(xv.method))}</tr>`
-    + pBox(`<div class="field-label">Department Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:8.5px;margin-top:3px">${EXC_DEPTS.map(d => `<span>${esc2(d)}: <b>${esc2((xv.deptChecks||{})[d] || '—')}</b></span>`).join('')}</div>`)
+    + pBox(`<div class="field-label">Department Checks</div><div style="display:flex;flex-wrap:wrap;gap:3px 14px;font-size:9.5px;margin-top:3px">${EXC_DEPTS.map(d => `<span>${esc2(d)}: <b>${esc2((xv.deptChecks||{})[d] || '—')}</b></span>`).join('')}</div>`)
     + `</table>` : '';
   const tbtKeys = TBT.map(t => t.k);
   // Attached supporting permit: printed on its own page at the end
   const supUp = (ex.uploads || {})['Supporting Permit'] || null;
   const supIsImg = !!(supUp && /\.(png|jpe?g|gif|webp)$/i.test(supUp.fileName || ''));
   const supAttachPage = supUp ? `<div style="page-break-before:always;padding:4px">`
-    + `<div style="font-size:11px;font-weight:700;margin-bottom:6px">ATTACHED SUPPORTING PERMIT — ${esc2(supUp.fileName || '')}</div>`
+    + `<div style="font-size:12px;font-weight:700;margin-bottom:6px">ATTACHED SUPPORTING PERMIT — ${esc2(supUp.fileName || '')}</div>`
     + (supIsImg
         ? `<img src="https://drive.google.com/uc?export=view&id=${supUp.fileId}" style="max-width:100%">`
         : `<iframe src="https://drive.google.com/file/d/${supUp.fileId}/preview" style="width:100%;height:950px;border:1px solid #000"></iframe>`)
-    + `<div style="font-size:9px;margin-top:6px">${esc2(supUp.url || '')}</div></div>` : '';
+    + `<div style="font-size:10px;margin-top:6px">${esc2(supUp.url || '')}</div></div>` : '';
   // Shift-wise Tool Box Talk: one row per question (full text), one column per shift
   // Section 7: workers for every shift (falls back to the work entries for older permits)
   const sec7 = (ex.shifts || []).length
@@ -6008,7 +6008,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     : (ex.workEntries || []).flatMap((e, i) => (e.workers || []).map(w => ({ name: w.name, company: w.company || '', certNo: w.certNo || '', date: fmtShiftDate(e.date, i+1), time: '', signed: '—' })));
   const shiftCols = (ex.shifts || []).map((sh, i) => ({ sh, i }));
   const tbtShiftBlock = shiftCols.length ? `<table style="margin-top:3px"><tr><td colspan="4" class="sec-head">Section 6: Tool Box Talk — Job Performer Awareness Check (Yes / No / NA)</td></tr>`
-    + pBox(`<table style="width:100%;border-collapse:collapse;font-size:8.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
+    + pBox(`<table style="width:100%;border-collapse:collapse;font-size:9.5px"><tr><th style="border:1px solid #000;padding:2px;text-align:left">Question</th>${shiftCols.map(({sh,i}) => `<th style="border:1px solid #000;padding:2px;text-align:center">${esc2(fmtShiftDate(shiftDateOf(sh, ex, i), sh.shiftNo || i+1))}</th>`).join('')}</tr>`
       + TBT.map(q => `<tr><td style="border:1px solid #000;padding:2px">(${q.k}) ${esc2(q.l)}</td>${shiftCols.map(({sh,i}) => {
           const it = (sh.tbt && sh.tbt.items) || (i === 0 ? tbtFlat(ex.tbt) : {});
           return `<td style="border:1px solid #000;padding:2px;text-align:center">${esc2(it[q.k] || '—')}</td>`;
@@ -6037,35 +6037,35 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     return best;
   };
   const apprCell = (role, name, time) => {
-    if (!time) return '<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;color:#999;font-size:8.5px">Pending</td>';
+    if (!time) return '<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;color:#999;font-size:9.5px">Pending</td>';
     const s = sigAt(role, time);
     const img = (s && s.signatureData)
       ? `<img src="${s.signatureData}" alt="signature" style="display:block;height:28px;max-width:116px;object-fit:contain;margin:1px auto">`
       : '<div style="height:34px;border-bottom:1px dotted #999;margin:4px 0"></div>';
     return `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">${img}`
-      + `<div style="font-size:8.5px;font-weight:700">${esc2(name||'')}</div>${desigFor(role)}`
-      + `<div style="font-size:8.5px;color:#555">${fmtDT(time)}</div></td>`;
+      + `<div style="font-size:9.5px;font-weight:700">${esc2(name||'')}</div>${desigFor(role)}`
+      + `<div style="font-size:9.5px;color:#555">${fmtDT(time)}</div></td>`;
   };
   const shiftApprovalTable = (shifts) => {
     const head = ['Shift','Originator','Acceptor','Safety','Duty Officer','Start / Stop'];
     const widths = ['17%','17%','17%','17%','14%','18%'];
-    const th = head.map((h,i)=>`<th style="background:#eee;border:1px solid #000;font-size:8.5px;padding:3px;text-align:left;width:${widths[i]}">${h}</th>`).join('');
+    const th = head.map((h,i)=>`<th style="background:#eee;border:1px solid #000;font-size:9.5px;padding:3px;text-align:left;width:${widths[i]}">${h}</th>`).join('');
     const rows = shifts.map(sh => {
       const cancelled = sh.shiftStatus === 'Cancelled';
       const shiftCell = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top">`
-        + `<div style="font-size:8.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
-        + `<div style="font-size:9px;font-weight:700">${esc2(fmtShiftDate(sh.date || (sh.shiftNo === 1 ? ((ex.workEntries || [])[0] || {}).date : ''), sh.shiftNo))}</div>`
-        + `<div style="font-size:8.5px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
+        + `<div style="font-size:9.5px;font-weight:700">Shift ${sh.shiftNo||''}</div>`
+        + `<div style="font-size:10px;font-weight:700">${esc2(fmtShiftDate(sh.date || (sh.shiftNo === 1 ? ((ex.workEntries || [])[0] || {}).date : ''), sh.shiftNo))}</div>`
+        + `<div style="font-size:9.5px;color:#444">${esc2(shiftNameFor(sh, sh===(ex.shifts||[])[0] ? ((ex.workEntries||[])[0]||null) : null))}</div>`
         + `</td>`;
       if (cancelled) {
-        return `<tr>${shiftCell}<td colspan="5" style="border:1px solid #000;padding:3px 4px;font-size:8.5px;color:#475569">`
+        return `<tr>${shiftCell}<td colspan="5" style="border:1px solid #000;padding:3px 4px;font-size:9.5px;color:#475569">`
           + `Cancelled by ${esc2(sh.cancelledBy||'—')} on ${fmtDT(sh.cancelledAt)} — ${esc2(sh.cancelReason||'No reason given')}. No work carried out under this shift.</td></tr>`;
       }
       const dutyApplicable = !!sh.dutyOfficerSignTime || sh.shiftStatus === 'Pending Duty Officer';
       const dutyCell = dutyApplicable
         ? apprCell('Duty', sh.dutyOfficerName, sh.dutyOfficerSignTime)
-        : '<td style="border:1px solid #000;padding:3px 4px;color:#999;font-size:8.5px">Not required</td>';
-      const startStop = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;font-size:8.5px">`
+        : '<td style="border:1px solid #000;padding:3px 4px;color:#999;font-size:9.5px">Not required</td>';
+      const startStop = `<td style="border:1px solid #000;padding:3px 4px;vertical-align:top;font-size:9.5px">`
         + `<div>Start: ${sh.jobStartTime ? fmtDT(sh.jobStartTime) : '—'}</div>`
         + `<div>Stop: ${sh.jobStopTime ? fmtDT(sh.jobStopTime) : '—'}</div>`
         + (sh.autoStoppedBySystem ? `<div style="color:#9a3412;font-weight:700">Auto-stopped by system</div>` : '')
@@ -6084,8 +6084,8 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     const s = sigMap[role];
     const hasSig = s && s.hasSignature && s.signatureData;
     return `<td style="border:1px solid #000;padding:4px 5px;vertical-align:top;width:25%">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>
-      <div style="font-size:9px;color:#444;margin-bottom:3px">${sub||''}</div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;border-bottom:1px solid #ccc;padding-bottom:2px;margin-bottom:3px">${label}</div>
+      <div style="font-size:10px;color:#444;margin-bottom:3px">${sub||''}</div>
       ${hasSig
         ? `<div style="border:1px dashed #bbb;border-radius:3px;padding:2px;margin:3px 0;text-align:center">
              <img src="${s.signatureData}" alt="${esc2(s.name||'')} signature"
@@ -6093,11 +6093,11 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
            </div>`
         : `<div style="height:42px;border-bottom:1px dotted #999;margin:4px 0"></div>`
       }
-      ${s ? `<div style="font-size:9px;font-weight:700">${esc2(s.name||'')}</div>
-             <div style="font-size:8.5px;color:#555">${fmtDT(s.time)}</div>
-             <div style="font-size:9px;font-weight:700;color:${s.action==='Approved'||s.action==='Signed'?'green':'#c00'}">${esc2(s.action||'Signed')}</div>
-             ${s.comments?`<div style="font-size:8.5px;color:#555;font-style:italic;margin-top:1px">${esc2(s.comments)}</div>`:''}`
-           : '<div style="font-size:8.5px;color:#999">Pending</div>'}
+      ${s ? `<div style="font-size:10px;font-weight:700">${esc2(s.name||'')}</div>
+             <div style="font-size:9.5px;color:#555">${fmtDT(s.time)}</div>
+             <div style="font-size:10px;font-weight:700;color:${s.action==='Approved'||s.action==='Signed'?'green':'#c00'}">${esc2(s.action||'Signed')}</div>
+             ${s.comments?`<div style="font-size:9.5px;color:#555;font-style:italic;margin-top:1px">${esc2(s.comments)}</div>`:''}`
+           : '<div style="font-size:9.5px;color:#999">Pending</div>'}
     </td>`;
   };
 
@@ -6110,7 +6110,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   const hazardRows = () => {
     const items = hazardsList;
     const cols = 3, rows = Math.ceil(items.length/cols);
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:9.5px">';
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:10.5px">';
     for (let r=0; r<rows; r++) {
       html += '<tr>';
       for (let col=0; col<cols; col++) {
@@ -6126,7 +6126,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       const byRole = {};
       added.forEach(x => { const r=x.role||'Safety Officer'; if(!byRole[r]) byRole[r]=[]; byRole[r].push(x.item); });
       html += Object.entries(byRole).map(([r,itms])=>
-        `<div style="font-size:8.5px;color:#555;margin-top:2px;font-style:italic">Added by ${r}: ${itms.map(x=>esc2(x)).join(', ')}</div>`
+        `<div style="font-size:9.5px;color:#555;margin-top:2px;font-style:italic">Added by ${r}: ${itms.map(x=>esc2(x)).join(', ')}</div>`
       ).join('');
     }
     return html;
@@ -6136,7 +6136,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   const ppeRows = () => {
     const items = ppeList;
     const cols = 3, rows = Math.ceil(items.length/cols);
-    let html = '<table style="width:100%;border-collapse:collapse;font-size:9.5px">';
+    let html = '<table style="width:100%;border-collapse:collapse;font-size:10.5px">';
     for (let r=0; r<rows; r++) {
       html += '<tr>';
       for (let col=0; col<cols; col++) {
@@ -6147,13 +6147,13 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       html += '</tr>';
     }
     html += '</table>';
-    if (ex.safetyHarnessNo) html += `<div style="font-size:8.5px;margin-top:2px">Safety Harness S.No: <strong>${esc2(ex.safetyHarnessNo)}</strong></div>`;
+    if (ex.safetyHarnessNo) html += `<div style="font-size:9.5px;margin-top:2px">Safety Harness S.No: <strong>${esc2(ex.safetyHarnessNo)}</strong></div>`;
     const added = (ex.addedPPE||[]);
     if (added.length) {
       const byRole = {};
       added.forEach(x => { const r=x.role||'Safety Officer'; if(!byRole[r]) byRole[r]=[]; byRole[r].push(x.item); });
       html += Object.entries(byRole).map(([r,itms])=>
-        `<div style="font-size:8.5px;color:#555;font-style:italic">Added by ${r}: ${itms.map(x=>esc2(x)).join(', ')}</div>`
+        `<div style="font-size:9.5px;color:#555;font-style:italic">Added by ${r}: ${itms.map(x=>esc2(x)).join(', ')}</div>`
       ).join('');
     }
     return html;
@@ -6166,16 +6166,19 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
 <title>PTW — ${esc2(p.permitNo)}</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family:Arial,Helvetica,sans-serif; font-size:9.5px; color:#000; background:#fff; }
+  body { font-family:Arial,Helvetica,sans-serif; font-size:10.5px; color:#000; background:#fff; }
   .page { width:210mm; min-height:297mm; padding:8mm 8mm; margin:0 auto; }
   table { border-collapse:collapse; width:100%; }
-  td, th { border:1px solid #000; padding:3px 5px; font-size:9.5px; vertical-align:top; }
-  .hdr-main { font-size:14px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
-  .hdr-sub { font-size:9px; text-align:center; }
-  .sec-head { background:#d0d0d0; font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:3px 5px; }
-  .field-label { font-size:8.5px; font-weight:700; text-transform:uppercase; color:#333; }
-  .field-val { font-size:9.5px; min-height:14px; }
-  .yn-box { display:inline-block; border:1px solid #000; padding:0 5px; font-size:9.5px; font-weight:700; }
+  td, th { border:1px solid #000; padding:3px 5px; font-size:10.5px; vertical-align:top; }
+  .hdr-main { font-size:15px; font-weight:900; text-align:center; text-transform:uppercase; letter-spacing:.5px; }
+  .hdr-sub { font-size:10px; text-align:center; }
+  .sec-head { background:#d0d0d0; font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; padding:3px 5px; }
+  .field-label { font-size:9.5px; font-weight:700; text-transform:uppercase; color:#333; }
+  .field-val { font-size:10.5px; min-height:14px; }
+  .yn-box { display:inline-block; border:1px solid #000; padding:0 5px; font-size:10.5px; font-weight:700; }
+  table.rep { width:100%; border-collapse:collapse; border:none; }
+  table.rep > thead { display:table-header-group; }
+  table.rep > thead > tr > td, table.rep > tbody > tr > td { border:none !important; padding:0 !important; }
   @page { size:A4; margin:6mm; }
   @media print { body{margin:0;} }
 </style>
@@ -6186,11 +6189,11 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
 <!-- ════════════════════════════════════
      HEADER
 ════════════════════════════════════ -->
-<table style="margin-bottom:0">
+<table class="rep"><thead><tr><td><table style="margin-bottom:0">
   <tr>
-    <td rowspan="2" style="width:18%;text-align:center;padding:6px;font-size:11px;font-weight:900;border:1px solid #000">
+    <td rowspan="2" style="width:18%;text-align:center;padding:6px;font-size:12px;font-weight:900;border:1px solid #000">
       HLL LIFECARE<br>LIMITED<br>
-      <div style="font-size:8.5px;font-weight:400">Peroorkada Factory<br>Thiruvananthapuram</div>
+      <div style="font-size:9.5px;font-weight:400">Peroorkada Factory<br>Thiruvananthapuram</div>
     </td>
     <td colspan="3" style="text-align:center;border:1px solid #000;padding:4px">
       <div class="hdr-main">PERMIT TO WORK</div>
@@ -6198,9 +6201,9 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     </td>
     <td rowspan="2" style="width:20%;border:1px solid #000;padding:4px">
       <div class="field-label">Permit No.</div>
-      <div style="font-size:13px;font-weight:900;margin:2px 0">${esc2(p.permitNo)}</div>
+      <div style="font-size:14px;font-weight:900;margin:2px 0">${esc2(p.permitNo)}</div>
       <div class="field-label" style="margin-top:4px">Status</div>
-      <div style="font-size:9.5px;font-weight:700">${esc2(p.status)}</div>
+      <div style="font-size:10.5px;font-weight:700">${esc2(p.status)}</div>
     </td>
   </tr>
   <tr>
@@ -6213,13 +6216,13 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
       <div class="field-val">${fmtD(p.validTo)}</div>
     </td>
     <td style="border:1px solid #000;padding:3px">
-      <div class="field-label">No. of Days &nbsp; <span style="color:red;font-weight:700">Emergency: 555</span></div>
+      <div class="field-label">No. of Days </div>
       <div class="field-val">${esc2(ex.durationDays||'1')} day(s)</div>
     </td>
   </tr>
 </table>
 
-<!-- ════════ SECTION 1: WORK DETAILS ════════ -->
+</td></tr></thead><tbody><tr><td><!-- ════════ SECTION 1: WORK DETAILS ════════ -->
 <table style="margin-top:3px">
   <tr>
     <td colspan="4" class="sec-head">Section 1: Details of Work / Job Description</td>
@@ -6228,7 +6231,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     <td style="width:25%;border:1px solid #000;padding:3px">
       <div class="field-label">Permit Originator (Work Initiating Dept.)</div>
       <div class="field-val">${dash(p.originatorName)}</div>
-      ${desigLine('originator') || `<div style="font-size:10px;color:#444">${dash(p.originatorDept)}</div>`}
+      ${desigLine('originator')}
     </td>
     <td style="width:25%;border:1px solid #000;padding:3px">
       <div class="field-label">Permit Acceptor (Work Effected Dept.)</div>
@@ -6242,7 +6245,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
     </td>
     <td style="width:25%;border:1px solid #000;padding:3px">
       <div class="field-label">Nature of Permit</div>
-      <div style="margin-top:3px;font-size:9.5px">
+      <div style="margin-top:3px;font-size:10.5px">
         ${chk(p.type==='Cold Work')} Cold Work &nbsp;&nbsp;
         ${chk(p.type==='Hot Work')} Hot Work &nbsp;&nbsp;
         ${chk(p.type==='Work at Height')} Work at Height
@@ -6278,7 +6281,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   <tr>
     <td colspan="4" style="border:1px solid #000;padding:3px">
       <div class="field-label">Supporting Permits Required</div>
-      <div style="margin-top:3px;font-size:9.5px;display:flex;gap:16px;flex-wrap:wrap">
+      <div style="margin-top:3px;font-size:10.5px;display:flex;gap:16px;flex-wrap:wrap">
         <span>${chk(suppP.electrical)} Electrical Permit ${suppP.elecSno?'(S.No: '+suppP.elecSno+')':''}</span>
         <span>${chk(suppP.excavation)} Excavation Permit (SAF 21/R01B) ${suppP.excSno?'(S.No: '+suppP.excSno+')':''}</span>
         <span>${chk(suppP.confinedSpace)} Confined Space Permit (SAF 21/R01A) ${suppP.csSno?'(S.No: '+suppP.csSno+')':''}</span>
@@ -6288,8 +6291,8 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   <tr>
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Competent Party Required?</div>
-      <div style="margin-top:2px;font-size:9.5px">${chk(ex.competentPartyRequired==='Yes')} Yes &nbsp; ${chk(ex.competentPartyRequired==='No')} No</div>
-      ${ex.competentPartyCert?`<div style="font-size:9px">Cert: ${esc2(ex.competentPartyCert)}</div>`:''}
+      <div style="margin-top:2px;font-size:10.5px">${chk(ex.competentPartyRequired==='Yes')} Yes &nbsp; ${chk(ex.competentPartyRequired==='No')} No</div>
+      ${ex.competentPartyCert?`<div style="font-size:10px">Cert: ${esc2(ex.competentPartyCert)}</div>`:''}
     </td>
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Contractor Emergency Contact</div>
@@ -6325,7 +6328,7 @@ ${csBlock}${exBlock}
 <table style="margin-top:3px">
   <tr><td colspan="4" class="sec-head">Section 4: Work Authorization</td></tr>
   <tr>
-    <td colspan="4" style="border:1px solid #000;padding:3px;font-size:9px">
+    <td colspan="4" style="border:1px solid #000;padding:3px;font-size:10px">
       <strong>Work Authorization (HLL):</strong> I have consulted all relevant department / personnel, discussed the scope of work, and inspected the preparatory work and the work area covered by this work permit. Therefore confirm that the work as detailed in "Description of Job" can be carried out.<br>
       <strong>Work Execution Team:</strong> The successive steps of the work, the potential hazards and the safety precautions have been explained and understood.<br>
       <em>Note: Work scheduled after general duty hours (09:15–17:15 hrs) / change of crew shall be endorsed by Duty Officer.</em>
@@ -6353,10 +6356,10 @@ ${csBlock}${exBlock}
     {label:'Time of Test', key:'time'},
   ].map((row,ri)=>`
   <tr style="${ri%2===1?'background:#f9f9f9':''}">
-    <td style="font-size:9px">${row.label}</td>
+    <td style="font-size:10px">${row.label}</td>
     ${Array.from({length:7},(_,d)=>{
       const t=(gasTests||[]).map((g,gi)=>Object.assign({},g,{_col: parseInt(g.day)||(gi+1)})).find(g=>g._col===d+1)||{};
-      return `<td style="text-align:center;font-size:9px">${esc2(row.key==='time' ? (t.time ? fmtDT(t.time) : '') : (t[row.key]||''))}</td>`;
+      return `<td style="text-align:center;font-size:10px">${esc2(row.key==='time' ? (t.time ? fmtDT(t.time) : '') : (t[row.key]||''))}</td>`;
     }).join('')}
   </tr>`).join('')}
 </table>
@@ -6367,14 +6370,13 @@ ${tbtShiftBlock}
 
 <!-- ════════ SECTION 7: PERSONS AT SITE ════════ -->
 <table style="margin-top:3px">
-  <tr><td colspan="6" class="sec-head">Section 7: Details of Persons Working at Site</td></tr>
+  <tr><td colspan="5" class="sec-head">Section 7: Details of Persons Working at Site</td></tr>
   <tr>
     <th style="background:#eee;width:5%;text-align:center">Sl.</th>
     <th style="background:#eee;width:25%">Name of Person</th>
     <th style="background:#eee;width:22%">Name of Company / Contractor</th>
     <th style="background:#eee;width:18%">Certificate No.</th>
-    <th style="background:#eee;width:15%">Date &amp; Shift</th>
-    <th style="background:#eee;width:15%">Signed Time</th>
+    <th style="background:#eee;width:30%">Signed Date &amp; Time</th>
   </tr>
   ${sec7.length ? sec7.map((w,i)=>`
   <tr>
@@ -6382,12 +6384,11 @@ ${tbtShiftBlock}
     <td>${esc2(w.name||'')}</td>
     <td>${esc2(w.company||'')}</td>
     <td>${esc2(w.certNo||'')}</td>
-    <td style="font-size:8.5px">${esc2(w.date||'')} ${esc2(w.time||'')}</td>
-    <td style="font-size:8.5px">${esc2(w.signed||'—')}</td>
+    <td style="font-size:9.5px">${esc2(w.signed||'—')}${w.date?`<div style="font-size:8.5px;color:#555">${esc2(w.date)}</div>`:''}</td>
   </tr>`).join('')
-  : `<tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
-     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
-     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>`}
+  : `<tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>
+     <tr><td></td><td>&nbsp;</td><td></td><td></td><td></td></tr>`}
 </table>
 
 <!-- ════════ SECTION 8: STATUS / COMPLETION ════════ -->
@@ -6400,7 +6401,7 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   </td></tr>
   ${ex.dailyEntries.map(de=>`
   <tr style="background:#f0f4ff">
-    <td colspan="6" style="border:1px solid #000;padding:4px 6px;font-size:9.5px">
+    <td colspan="6" style="border:1px solid #000;padding:4px 6px;font-size:10.5px">
       <strong>Day ${de.dayNo} — ${de.dateLabel||de.date}</strong>
       &nbsp;|&nbsp; Shifts: ${(de.shiftLabels||de.shifts||[]).join(', ')}
       &nbsp;|&nbsp; Status: <strong>${de.status}</strong>
@@ -6409,23 +6410,23 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   </tr>
   <!-- Workers for this day -->
   <tr>
-    <th style="background:#eee;font-size:9px;border:1px solid #ccc;padding:3px" colspan="2">Worker</th>
-    <th style="background:#eee;font-size:9px;border:1px solid #ccc;padding:3px" colspan="2">Company / Contractor</th>
-    <th style="background:#eee;font-size:9px;border:1px solid #ccc;padding:3px">Cert No.</th>
-    <th style="background:#eee;font-size:9px;border:1px solid #ccc;padding:3px">Ack</th>
+    <th style="background:#eee;font-size:10px;border:1px solid #ccc;padding:3px" colspan="2">Worker</th>
+    <th style="background:#eee;font-size:10px;border:1px solid #ccc;padding:3px" colspan="2">Company / Contractor</th>
+    <th style="background:#eee;font-size:10px;border:1px solid #ccc;padding:3px">Cert No.</th>
+    <th style="background:#eee;font-size:10px;border:1px solid #ccc;padding:3px">Ack</th>
   </tr>
   ${(de.workers||[]).map(w=>`<tr>
-    <td colspan="2" style="border:1px solid #ccc;padding:3px;font-size:9px">${esc2(w.name||'')}</td>
-    <td colspan="2" style="border:1px solid #ccc;padding:3px;font-size:9px">${esc2(w.contractor||'')}</td>
-    <td style="border:1px solid #ccc;padding:3px;font-size:9px">${esc2(w.certNo||'')}</td>
-    <td style="border:1px solid #ccc;padding:3px;font-size:9px;text-align:center">${w.acked?'✓':''}</td>
+    <td colspan="2" style="border:1px solid #ccc;padding:3px;font-size:10px">${esc2(w.name||'')}</td>
+    <td colspan="2" style="border:1px solid #ccc;padding:3px;font-size:10px">${esc2(w.contractor||'')}</td>
+    <td style="border:1px solid #ccc;padding:3px;font-size:10px">${esc2(w.certNo||'')}</td>
+    <td style="border:1px solid #ccc;padding:3px;font-size:10px;text-align:center">${w.acked?'✓':''}</td>
   </tr>`).join('')}
   <!-- Gas Test for this day -->
   ${(de.gasTests&&de.gasTests.length)?`
   <tr style="background:#f9fafb">
     <td colspan="6" style="border:1px solid #ccc;padding:3px">
-      <div style="font-size:9px;font-weight:700;margin-bottom:2px">Gas Test</div>
-      <table style="width:100%;border-collapse:collapse;font-size:9px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:2px">Gas Test</div>
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
         <tr style="background:#eee">
           <th style="border:1px solid #ccc;padding:2px 4px;text-align:left">O₂%</th>
           <th style="border:1px solid #ccc;padding:2px 4px;text-align:left">HC%</th>
@@ -6445,8 +6446,8 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   ${(de.tbt&&Object.keys(de.tbt).some(k=>k!=='notes'&&de.tbt[k]))?`
   <tr style="background:#fffbf0">
     <td colspan="6" style="border:1px solid #ccc;padding:3px">
-      <div style="font-size:9px;font-weight:700;margin-bottom:2px">Tool Box Talk</div>
-      <div style="font-size:8.5px;display:flex;flex-wrap:wrap;gap:4px">
+      <div style="font-size:10px;font-weight:700;margin-bottom:2px">Tool Box Talk</div>
+      <div style="font-size:9.5px;display:flex;flex-wrap:wrap;gap:4px">
         ${TBT.map(item=>{
           const val=de.tbt[item.k];
           if(!val) return '';
@@ -6455,17 +6456,17 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
           </span>`;
         }).join('')}
       </div>
-      ${de.tbt.notes?`<div style="font-size:8.5px;margin-top:3px;color:#555;font-style:italic">Notes: ${esc2(de.tbt.notes)}</div>`:''}
+      ${de.tbt.notes?`<div style="font-size:9.5px;margin-top:3px;color:#555;font-style:italic">Notes: ${esc2(de.tbt.notes)}</div>`:''}
     </td>
   </tr>`:''}
   <!-- Approvals for this day -->
   <tr>
-    <td colspan="3" style="border:1px solid #ccc;padding:3px;font-size:9px;vertical-align:top">
+    <td colspan="3" style="border:1px solid #ccc;padding:3px;font-size:10px;vertical-align:top">
       <strong>Acceptor:</strong> ${esc2(de.acceptorApprovedBy||'Pending')}
       ${de.acceptorApprovedAt?'<br><span style="color:#555">'+fmtDT(de.acceptorApprovedAt)+'</span>':''}
       ${de.isSubstituteApproval?'<br><em style="color:#1d4ed8">Substitute</em>':''}
     </td>
-    <td colspan="3" style="border:1px solid #ccc;padding:3px;font-size:9px;vertical-align:top">
+    <td colspan="3" style="border:1px solid #ccc;padding:3px;font-size:10px;vertical-align:top">
       <strong>Safety Officer:</strong> ${esc2(de.safetyApprovedBy||'Pending')}
       ${de.safetyApprovedAt?'<br><span style="color:#555">'+fmtDT(de.safetyApprovedAt)+'</span>':''}
     </td>
@@ -6477,19 +6478,19 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
   <tr>
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Job Completion Status</div>
-      <div style="margin-top:3px;font-size:9.5px">
+      <div style="margin-top:3px;font-size:10.5px">
         ${chk((ex.completionStatus || ex.closureJobStatus)==='Completed')} Job completed &amp; housekeeping done &nbsp;&nbsp;
         ${chk((ex.completionStatus || ex.closureJobStatus)==='Incomplete')} Job incomplete
       </div>
-      ${ex.completionReason?`<div style="font-size:8.5px;margin-top:2px">Reason: ${esc2(ex.completionReason)}</div>`:''}
+      ${ex.completionReason?`<div style="font-size:9.5px;margin-top:2px">Reason: ${esc2(ex.completionReason)}</div>`:''}
     </td>
     <td colspan="2" style="border:1px solid #000;padding:3px">
       <div class="field-label">Handover Confirmation</div>
-      <div style="margin-top:3px;font-size:9.5px">
+      <div style="margin-top:3px;font-size:10.5px">
         ${chk(ex.handoverOriginator || !!ex.closureJobStatus)} Handed over to Permit Originator<br>
         ${chk(ex.handoverSafety || !!(ex.closureSigns || {})['Closure-Safety'])} Handed over to Safety In-Charge
       </div>
-      <div style="margin-top:3px;font-size:9px">Associated Permit Status:
+      <div style="margin-top:3px;font-size:10px">Associated Permit Status:
         ${chk(ex.assocPermitStatus==='Open')} Open &nbsp;
         ${chk(ex.assocPermitStatus==='Closed')} Closed &nbsp;
         ${chk(ex.assocPermitStatus==='NA')} NA
@@ -6512,7 +6513,7 @@ ${(ex.dailyEntries&&ex.dailyEntries.length)?`
 
 
 
-</div>
+</td></tr></tbody></table></div>
 
 
 ${supAttachPage}
