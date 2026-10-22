@@ -4582,7 +4582,7 @@ function buildView(el, p, log, tests, scans, sigs) {
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Area / Site</dt><dd>${esc(p.workArea)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Type of Permit</dt><dd>${esc(p.type)||'—'}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Duration</dt><dd>${ex.durationDays?esc(ex.durationDays)+' day(s)':'—'}</dd></div>
-          <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Work Hours</dt><dd>${(()=>{const we=ex.workEntries||[];const f=ex.durationFrom||(we[0]||{}).from||'';const t=ex.durationTo||(we[we.length-1]||{}).to||'';return (f||t)?esc(f||'—')+' → '+esc(t||'—'):'—';})()}</dd></div>
+          
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Valid From</dt><dd>${shiftStartDisplay(p, ex)}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Valid To</dt><dd>${fd(p.validTo)}</dd></div>
           <div><dt style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:3px">Originator</dt><dd>${esc(p.originatorName)||'—'} · ${esc(p.originatorDept||'—')}</dd></div>
@@ -5869,11 +5869,23 @@ async function printPermit(permitNo, inPlace) {
     if (!p) { if (!inPlace) w.close(); toast('Permit not found', 'err'); return; }
     window._printCurrentOnly = false;   // always the full permit
     const html = buildPrintHTML(p, sigs, log, tests, scans);
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
-    w.focus();
-    setTimeout(() => { w.print(); }, 300);
+    if (inPlace) {
+      // Print from a separate, isolated frame (same as the portal's print window), leaving this page untouched
+      let fr = document.getElementById('print-frame');
+      if (fr) fr.remove();
+      fr = document.createElement('iframe');
+      fr.id = 'print-frame';
+      fr.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:1200px;border:0';
+      fr.onload = () => { setTimeout(() => { fr.contentWindow.focus(); fr.contentWindow.print(); }, 300); };
+      fr.srcdoc = html;
+      document.body.appendChild(fr);
+    } else {
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      w.focus();
+      setTimeout(() => { w.print(); }, 300);
+    }
   } catch (e) {
     load(false);
     if (!inPlace) { try { w.close(); } catch (x) {} }
