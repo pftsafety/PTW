@@ -1,4 +1,4 @@
-const CACHE = 'hll-scanner-v16';
+const CACHE = 'hll-scanner-v17';
 const ASSETS = [
   './',
   './index.html',
@@ -21,8 +21,9 @@ self.addEventListener('activate', e => {
       .then(() => self.clients.claim())
   );
 });
-// Stale-while-revalidate for GET requests: show the cached copy now and refresh it in the background.
-// Apps Script calls are POST requests, so they always go to the network.
+// Pages (index.html, scanner.html) always come from the network when online, so updates show at once.
+// Other GET requests (libraries, manifest) are served from cache and refreshed in the background.
+// Apps Script calls are POST requests and always go to the network.
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
@@ -30,6 +31,15 @@ self.addEventListener('fetch', e => {
   const sameOrigin = url.origin === self.location.origin;
   const library = url.hostname === 'cdnjs.cloudflare.com' || url.hostname === 'cdn.jsdelivr.net';
   if (!sameOrigin && !library) return;
+  const isPage = req.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+  if (isPage) {
+    e.respondWith(
+      fetch(req)
+        .then(res => { if (res && res.ok) caches.open(CACHE).then(c => c.put(req, res.clone())); return res; })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
   e.respondWith(
     caches.open(CACHE).then(async cache => {
       const cached = await cache.match(req);
