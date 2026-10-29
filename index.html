@@ -2733,6 +2733,7 @@ function applyUploadSettingsToForm() {
 
   const suppMark = document.getElementById('supp-required-mark');
   if (suppMark) suppMark.textContent = s.suppPermitUploadRequired ? '*' : '(optional)';
+  updateSuppUploadRow_();
   const tbtMark = document.getElementById('tbt-required-mark');
   if (tbtMark) tbtMark.textContent = s.tbtUploadRequired ? '*' : '(optional)';
 }
@@ -3522,6 +3523,18 @@ function showSupForm(id, show) {
 }
 
 // Supporting Permits: Yes = show detail + sub-form link, No = hide
+// Supporting permit upload: needed only when Electrical, Excavation or Confined Space is Yes
+function anySupYes_() {
+  return ['elec','exc','cs'].some(t => { const r = document.querySelector('input[name="sup_' + t + '_yn"]:checked'); return !!r && r.value === 'Yes'; });
+}
+function updateSuppUploadRow_() {
+  const s = _systemSettings || {};
+  const need = anySupYes_();
+  const row = document.getElementById('supp-permit-upload-row');
+  if (row) row.style.display = (s.suppPermitUploadEnabled && need) ? 'block' : 'none';
+  const mark = document.getElementById('supp-required-mark');
+  if (mark) mark.textContent = (s.suppPermitUploadRequired && need) ? '*' : '(optional)';
+}
 function toggleSupYN(type, val) {
   const detail = document.getElementById('sup-'+type+'-detail');
   if (detail) detail.style.display = val==='yes' ? 'block' : 'none';
@@ -3530,6 +3543,7 @@ function toggleSupYN(type, val) {
   if (cb) cb.value = val==='yes' ? 'true' : '';
   // Close the sub-form if switching to No
   if (val==='no') showSupForm(type==='elec'?null:type==='exc'?'exc-form':'cs-form', false);
+  updateSuppUploadRow_();
   // Style the Y/N labels
   const wrap = detail ? detail.closest('.ptw-sup-item') : null;
   if (wrap) {
@@ -3747,7 +3761,20 @@ function removeEntry(id) {
   renderEntriesList();
 }
 
-function renderEntriesList() {
+// Work entries list, then the power tool warning under it (shown while the form is filled in)
+function renderEntriesList() { renderEntriesListCore_(); updateToolInspectionBanner_(); }
+// Shows the power tool warning on the form when a work entry falls in a later month (SOP 4.2)
+function updateToolInspectionBanner_() {
+  const err = document.getElementById('we-err');
+  if (!err || !err.parentNode) return;
+  let b = document.getElementById('tool-insp-banner');
+  if (!b) { b = document.createElement('div'); b.id = 'tool-insp-banner'; err.parentNode.insertBefore(b, err); }
+  const lines = toolInspectionLines_((_workEntries || []).map(e => e.date));
+  if (!lines.length) { b.style.display = 'none'; b.innerHTML = ''; return; }
+  b.style.cssText = 'display:block;margin:8px 0;padding:10px 12px;border-radius:var(--radius-sm);background:#fffbeb;border:1px solid #fcd34d;color:#92400e;font-size:12px;line-height:1.5';
+  b.innerHTML = '⚠️ <strong>Power tool inspection</strong><br>' + lines.map(l => esc(l)).join('<br>');
+}
+function renderEntriesListCore_() {
   const el = document.getElementById('work-entries-list');
   if (!el) return;
   if (!_workEntries.length) {
@@ -4156,6 +4183,7 @@ async function submitForm(e) {
   // Find form element regardless of how submitForm was called
   const frm = document.getElementById('ptw-form');
   if (!frm) { toast('Form not found — please reload','err'); return; }
+  if (window._createInFlight) { toast('Permit is being submitted — please wait','warn'); return; }
   const fd = new FormData(frm);
   const typeEl=frm.querySelector('input[name=type]:checked');
   if (!typeEl) { toast('Please select Nature of Permit','err'); return; }
@@ -4231,7 +4259,7 @@ async function submitForm(e) {
   const suppFile = suppFileEl && suppFileEl.files[0] ? suppFileEl.files[0] : null;
   const tbtFile  = tbtFileEl  && tbtFileEl.files[0]  ? tbtFileEl.files[0]  : null;
   if (_systemSettings) {
-    if (_systemSettings.suppPermitUploadEnabled && _systemSettings.suppPermitUploadRequired && !suppFile) {
+    if (_systemSettings.suppPermitUploadEnabled && _systemSettings.suppPermitUploadRequired && anySupYes_() && !suppFile) {
       toast('Supporting Permit document is required before submission.','err');
       document.getElementById('supp-permit-upload-row')?.scrollIntoView({behavior:'smooth',block:'center'});
       return;
@@ -4279,9 +4307,18 @@ async function submitForm(e) {
       load(true);
       const editingNo = document.getElementById('ptw-form')?.dataset?.editingPermitNo;
   if (editingNo) payload.permitNo = editingNo;
+  window._createInFlight = true;
   api(editingNo ? 'updatePermit' : 'createPermit', payload)
         .then(async r => {
+          window._createInFlight = false;
           if (!r || !r.permitNo) { load(false); throw new Error('No permit number returned from server.'); }
+          if (window._draftId) { api('deleteDraft',{draftId:window._draftId}).catch(()=>{}); window._draftId = null; }
+          load(false);
+          toast((editingNo?'Permit updated ✅':'Permit '+r.permitNo+' created ✅'),'ok');
+          loadNotifications();
+          if (!editingNo) { try { frm.reset(); } catch (x) {} _workEntries = []; if (typeof renderEntriesList === 'function') renderEntriesList(); }
+          setTimeout(() => nav('view-permit', r.permitNo), 300);   // open the new permit at once
+          // Files are saved in the background; the permit view is refreshed when they are in
           try {
             if (suppFile) {
               const b64 = await fileToBase64(suppFile);
@@ -4291,14 +4328,11 @@ async function submitForm(e) {
               const b64 = await fileToBase64(tbtFile);
               await api('uploadFile', { fileName:tbtFile.name, mimeType:tbtFile.type, base64Data:b64, permitNo:r.permitNo, fileType:'TBT Record' });
             }
+            if ((suppFile || tbtFile) && document.getElementById('pg-view-permit')?.classList.contains('active')) loadView(r.permitNo);
           } catch(upErr) { toast('Permit created, but file upload failed: '+upErr.message,'warn'); }
-          if (window._draftId) { api('deleteDraft',{draftId:window._draftId}).catch(()=>{}); window._draftId = null; }
-          load(false);
-          toast((editingNo?'Permit updated ✅':'Permit '+r.permitNo+' created ✅'),'ok');
-          loadNotifications();
-          setTimeout(() => nav('view-permit', r.permitNo), 600);
         })
         .catch(er => {
+          window._createInFlight = false;
           load(false);
           const msg = er ? er.message : 'Unknown error. Check network and try again.';
           toast(msg, 'err');
@@ -4828,6 +4862,19 @@ function buildView(el, p, log, tests, scans, sigs) {
       </div>
 
       
+
+      <!-- Attachments: supporting permit and tool box talk record -->
+      <div class="card" style="margin-top:14px">
+        <div class="form-section-header"><div class="fs-num">📎</div><div class="fs-title">Attachments</div></div>
+        ${(() => { const up = ex.uploads || {};
+          const rows = ['Supporting Permit','TBT Record'].filter(k => up[k]).map(k =>
+            '<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:13px">'
+            + '<div style="font-weight:700;color:var(--navy)">' + esc(k) + '</div>'
+            + '<div style="color:var(--slate);font-size:12px">' + esc(up[k].fileName || '') + (up[k].uploadedAt ? ' · ' + fd(up[k].uploadedAt) : '') + '</div>'
+            + (up[k].url ? '<a href="' + esc(up[k].url) + '" target="_blank" rel="noopener" style="color:var(--blue);font-size:12px">Open file</a>' : '')
+            + '</div>').join('');
+          return rows || '<div style="font-size:13px;color:var(--slate)">No supporting permit or tool box talk record uploaded.</div>'; })()}
+      </div>
 
       <!-- Events (collapsible, left column, below closure) -->
       <details class="card" style="padding:0">
