@@ -4126,6 +4126,31 @@ function collectExcForm(frm) {
   };
 }
 
+// Power tool inspection (SOP 4.2): an inspection is valid for one month, and the sticker colour changes each month
+const TOOL_STICKER_MONTHS_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const TOOL_STICKER_COLOURS_ = ['Violet','Blue','Pink','Maroon','Yellow','Orange','Green','Brown','White','Golden','Neon green','Royal Blue'];
+// Lines for the warning when a shift falls in a later month than today's inspection
+function toolInspectionLines_(dates) {
+  const now = new Date(), curKey = now.getFullYear() * 12 + now.getMonth();
+  const keys = [...new Set((dates || []).filter(Boolean).map(d => {
+    const x = new Date(d + 'T00:00:00'); return isNaN(x) ? null : x.getFullYear() * 12 + x.getMonth();
+  }).filter(k => k !== null && k > curKey))].sort((a, b) => a - b);
+  if (!keys.length) return [];
+  const lines = ['Power tools are inspected monthly. Each inspection is valid for one month only.'];
+  keys.forEach(k => {
+    const m = k % 12, y = Math.floor(k / 12);
+    lines.push(TOOL_STICKER_MONTHS_[m] + ' ' + y + ': tools must be re-inspected and carry the ' + TOOL_STICKER_COLOURS_[m] + ' sticker before work starts.');
+  });
+  lines.push('Submit the tools to the Electrical Section for re-inspection before this work starts.');
+  return lines;
+}
+// Originator warning before signing; the originator can continue after reading it
+async function toolInspectionCheck_(dates) {
+  const lines = toolInspectionLines_(dates);
+  if (!lines.length) return true;
+  const r = await confirmSheet({ title: 'Power tool inspection', lines, okLabel: 'I understand — continue' });
+  return r.ok;
+}
 async function submitForm(e) {
   if (e && e.preventDefault) e.preventDefault();
   // Find form element regardless of how submitForm was called
@@ -4234,6 +4259,8 @@ async function submitForm(e) {
   const _certs = _workEntries.flatMap(en => (en.workers || []).map(w => w.certNo));
   if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) return;
 
+  // Power tool inspection warning before the originator signs (SOP 4.2)
+  if (!(await toolInspectionCheck_((_workEntries || []).map(e => e.date)))) return;
   // Open originator signature modal — submit happens after signing
   openSigModal(
     'Permit Originator Sign-off',
@@ -7074,6 +7101,8 @@ async function saveShift() {
   // Warn if a worker on this shift is already on another permit in progress
   if (!(await warnWorkerConflicts(_shiftWorkers.map(w => w.certNo), no))) return;
 
+  // Power tool inspection warning for a shift in a later month (SOP 4.2)
+  if (!(await toolInspectionCheck_([date]))) return;
   // Originator must sign to authorize this new shift before it's submitted
   openSigModal(
     'Originator Sign-off',
