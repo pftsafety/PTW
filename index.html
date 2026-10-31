@@ -1157,6 +1157,7 @@ tbody tr:last-child td { border-bottom:none; }
       <button class="nav-item active" id="nav-dashboard"   data-on-click="nav('dashboard')">   <span class="ni-icon">◈</span> Dashboard</button>
       <button class="nav-item"        id="nav-new-permit"  data-on-click="nav('new-permit')">  <span class="ni-icon">＋</span> New Permit</button>
       <button class="nav-item"        id="nav-my-permits"  data-on-click="nav('my-permits')">  <span class="ni-icon">◻</span> My Permits</button>
+      <button class="nav-item"        id="nav-drafts"     data-on-click="nav('drafts')">     <span class="ni-icon">💾</span> Drafts</button>
       <button class="nav-item"        id="nav-all-permits" data-on-click="nav('all-permits')"> <span class="ni-icon">▦</span> All Permits</button>
       <button class="nav-item"        id="nav-sub-approval" data-on-click="nav('sub-approval')"><span class="ni-icon">🔄</span> Substitute Approval</button>
 
@@ -1216,6 +1217,7 @@ tbody tr:last-child td { border-bottom:none; }
       <div id="pg-dashboard"   class="page active"></div>
       <div id="pg-new-permit"  class="page"></div>
       <div id="pg-my-permits"  class="page"></div>
+      <div id="pg-drafts"     class="page"></div>
       <div id="pg-all-permits" class="page"></div>
       <div id="pg-view-permit" class="page"></div>
       <div id="pg-users"       class="page"></div>
@@ -2074,7 +2076,7 @@ function launchApp() {
 // ══════════════════════════════════════════════════════════════
 const PAGE_TITLES={
   'dashboard':'Dashboard','new-permit':'New Permit to Work',
-  'my-permits':'My Permits','all-permits':'All Permits',
+  'my-permits':'My Permits','all-permits':'All Permits', 'drafts':'Drafts',
   'view-permit':'Permit Detail','users':'User Management',
   'sub-approval':'Substitute Acceptor Approval'
 };
@@ -2090,6 +2092,7 @@ function nav(page, arg) {
     case 'dashboard':   loadDashboard();    break;
     case 'new-permit':  renderForm();  break;
     case 'my-permits':  loadList('my');     break;
+    case 'drafts':      loadDraftsPage();   break;
     case 'all-permits': loadList('all');    break;
     case 'view-permit': loadView(arg);      break;
     case 'users':       loadUsers();        break;
@@ -2772,6 +2775,7 @@ function buildFormSectionNav() {
 }
 
 async function renderForm() {
+  window._editUploads = null;
   _workerIdx=1;
   window._draftId = null;
   const el=document.getElementById('pg-new-permit');
@@ -4030,6 +4034,18 @@ function openEditPermit(permitNo) {
   }).catch(e=>{ load(false); toast(e.message,'err'); });
 }
 
+// Every filled-in field of the permit form, saved with the permit so an edit can show them again
+function snapshotForm_(frm) {
+  const out = {};
+  Array.from(frm.elements).forEach(el => {
+    if (!el.name || el.disabled || el.type === 'file' || el.type === 'button' || el.type === 'submit') return;
+    if (el.type === 'checkbox') { out[el.name] = out[el.name] || []; if (el.checked) out[el.name].push(el.value); }
+    else if (el.type === 'radio') { if (el.checked) out[el.name] = el.value; }
+    else if (el.tagName === 'SELECT' && el.multiple) out[el.name] = Array.from(el.selectedOptions).map(o => o.value);
+    else out[el.name] = el.value;
+  });
+  return out;
+}
 function renderEditForm(p) {
   // Render form then pre-fill values
   renderForm();
@@ -4048,6 +4064,24 @@ function renderEditForm(p) {
     frm.querySelectorAll('[name=hazard]').forEach(cb=>{ cb.checked=p.hazards&&p.hazards.includes(cb.value); });
     // Pre-check PPE
     frm.querySelectorAll('[name=ppe]').forEach(cb=>{ cb.checked=p.ppeControls&&p.ppeControls.includes(cb.value); });
+    // Restore every field the permit was saved with (falls back to the basic fields above for older permits)
+    window._editUploads = ex.uploads || {};
+    const snap = ex.formSnapshot || null;
+    if (snap) {
+      Object.keys(snap).forEach(name => {
+        const val = snap[name];
+        const els = Array.from(frm.querySelectorAll('[name="' + name + '"]'));
+        if (!els.length) return;
+        els.forEach(el => {
+          if (el.type === 'checkbox') el.checked = Array.isArray(val) && val.includes(el.value);
+          else if (el.type === 'radio') el.checked = (val === el.value);
+          else if (el.tagName === 'SELECT' && el.multiple) Array.from(el.options).forEach(o => { o.selected = Array.isArray(val) && val.includes(o.value); });
+          else if (!Array.isArray(val)) el.value = (val == null ? '' : val);
+        });
+        // let the form react (sections show or hide, totals update)
+        els.forEach(el => el.dispatchEvent(new Event('change', { bubbles: true })));
+      });
+    }
     // Restore the work entries and their workers so they can be changed or removed
     _workEntries = JSON.parse(JSON.stringify(ex.workEntries||[]));
     renderEntriesList();
@@ -4259,7 +4293,7 @@ async function submitForm(e) {
   const suppFile = suppFileEl && suppFileEl.files[0] ? suppFileEl.files[0] : null;
   const tbtFile  = tbtFileEl  && tbtFileEl.files[0]  ? tbtFileEl.files[0]  : null;
   if (_systemSettings) {
-    if (_systemSettings.suppPermitUploadEnabled && _systemSettings.suppPermitUploadRequired && anySupYes_() && !suppFile) {
+    if (_systemSettings.suppPermitUploadEnabled && _systemSettings.suppPermitUploadRequired && anySupYes_() && !suppFile && !(frm.dataset.editingPermitNo && (window._editUploads || {})['Supporting Permit'])) {
       toast('Supporting Permit document is required before submission.','err');
       document.getElementById('supp-permit-upload-row')?.scrollIntoView({behavior:'smooth',block:'center'});
       return;
@@ -4270,7 +4304,8 @@ async function submitForm(e) {
       return;
     }
   }
-  payload.hasSuppPermitUpload = !!suppFile;
+  payload.hasSuppPermitUpload = !!suppFile || !!(frm.dataset.editingPermitNo && (window._editUploads || {})['Supporting Permit']);
+  payload.formSnapshot = snapshotForm_(frm);
   payload.anySupYes = anySupYes_();
   payload.hasTbtUpload = !!tbtFile;
 
@@ -5487,6 +5522,28 @@ async function deleteDraftPrompt(id) {
   if (!ok.ok) return;
   try { await api('deleteDraft', { draftId: id }); toast('Draft deleted', 'ok'); loadDraftsCard(); }
   catch (e) { toast(e.message, 'err'); }
+}
+// Drafts page: the saved drafts, with Open and Delete
+async function loadDraftsPage() {
+  const el = document.getElementById('pg-drafts'); if (!el) return;
+  const head = '<div class="card"><div class="form-section-header"><div class="fs-num">💾</div><div class="fs-title">Drafts</div></div>';
+  el.innerHTML = head + '<div style="font-size:13px;color:var(--slate)">Loading…</div></div>';
+  try {
+    const list = await api('listDrafts', {});
+    if (!list || !list.length) {
+      el.innerHTML = head + '<div style="font-size:13px;color:var(--slate)">No drafts saved. Use "Save as draft" on a new permit to keep unfinished work here.</div></div>';
+      return;
+    }
+    el.innerHTML = head.replace('<div class="fs-title">Drafts</div>', '<div class="fs-title">Drafts (' + list.length + ')</div>')
+      + list.map(d => '<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + esc(d.title) + '</div>'
+        + '<div style="font-size:11px;color:var(--slate)">Saved ' + relHtml(d.updatedAt) + '</div></div>'
+        + '<button class="btn btn-ghost btn-sm" data-on-click="openDraft(\'' + d.draftId + '\')">Open</button>'
+        + '<button class="btn btn-ghost btn-sm" style="color:var(--red)" data-on-click="deleteDraftPrompt(\'' + d.draftId + '\')">Delete</button></div>').join('')
+      + '</div>';
+  } catch (e) {
+    el.innerHTML = head + '<div style="font-size:13px;color:var(--red)">Could not load drafts: ' + esc(e.message) + '</div></div>';
+  }
 }
 async function loadDraftsCard() {
   const el = document.getElementById('drafts-card'); if (!el) return;
