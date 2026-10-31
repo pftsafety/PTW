@@ -2357,7 +2357,7 @@ function permitTable(permits) {
     <tbody>${permits.map((p,i)=>`<tr class="row-in" data-permit="${p.permitNo}" style="animation-delay:${Math.min(i,15)*30}ms">
       <td><strong style="color:var(--blue-dark)">${p.permitNo}</strong></td>
       <td><span class="badge badge-type">${esc(p.type)||'—'}</span></td>
-      <td>${sbadge(p.status)}<div style="font-size:11px;color:var(--slate);margin-top:3px;white-space:normal;max-width:220px">${esc(nextActionMsg(p, p.extras||{}, curShiftOf(p.extras||{})))}</div></td>
+      <td>${sbadge(p.status)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.jobDescription)}">${esc(p.jobDescription)||'—'}</td>
       <td>${esc(p.workArea)||'—'}</td>
       <td>${esc(p.originatorName)||'—'}</td>
