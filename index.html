@@ -818,6 +818,47 @@ tbody tr:last-child td { border-bottom:none; }
 .card-in { animation: cardIn .35s ease both; }
 @keyframes slideInRight { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+/* ── Dashboard redesign ── */
+.dash-hero { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%); color:#fff; border-radius:16px; padding:22px 24px; margin-bottom:16px; box-shadow:var(--shadow); }
+.dash-hero-title { font-size:20px; font-weight:800; letter-spacing:-.3px; }
+.dash-hero-sub { font-size:12.5px; color:#cbd5e1; margin-top:4px; }
+.dash-hero-actions { display:flex; gap:8px; flex-wrap:wrap; }
+.dash-hero-btn { background:#fff; color:var(--navy); border:none; font-weight:700; }
+.dash-hero-btn.ghost { background:rgba(255,255,255,.12); color:#fff; }
+.dash-kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+.dash-kpi { background:var(--white); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:var(--shadow-sm); cursor:pointer; transition:transform .15s ease, box-shadow .15s ease; }
+.dash-kpi:hover { transform:translateY(-2px); box-shadow:var(--shadow); }
+.dash-kpi:active { transform:scale(.985); }
+.dash-kpi-top { display:flex; align-items:center; justify-content:space-between; }
+.dash-kpi-ic { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:16px; background:var(--bg); }
+.dash-kpi-num { font-size:28px; font-weight:800; letter-spacing:-.5px; line-height:1; color:currentColor; }
+.dash-kpi-label { font-size:12px; color:var(--slate); margin-top:10px; font-weight:600; }
+.dash-kpi-bar { height:5px; border-radius:99px; background:var(--bg); margin-top:10px; overflow:hidden; }
+.dash-kpi-bar span { display:block; height:100%; border-radius:99px; background:currentColor; transition:width .6s ease; }
+.dash-kpi.green { color:var(--green); }
+.dash-kpi.amber { color:var(--amber); }
+.dash-kpi.purple { color:var(--purple); }
+.dash-kpi.slate { color:var(--slate); }
+.dash-kpi.blue { color:var(--blue); }
+.dash-grid { display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr); gap:16px; align-items:start; }
+.dash-side { display:flex; flex-direction:column; gap:14px; }
+.dash-mixbar { display:flex; height:12px; border-radius:99px; overflow:hidden; background:var(--bg); margin:6px 0 12px; }
+.dash-mixbar span { display:block; height:100%; transition:width .6s ease; }
+.dash-leg { display:flex; align-items:center; gap:8px; font-size:13px; padding:6px 0; color:var(--navy); border-bottom:1px solid var(--border); }
+.dash-leg:last-child { border-bottom:none; }
+.dash-leg .dot { width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.dash-leg b { margin-left:auto; font-weight:800; }
+.dash-alert { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; border-radius:12px; padding:12px 14px; font-size:13px; font-weight:600; cursor:pointer; }
+@media (max-width:820px) { .dash-grid { grid-template-columns:1fr; } }
+
+/* ── Type-to-find pickers (Acceptor, Safety In-Charge) ── */
+.pick-combo { position:relative; }
+.pick-list { position:absolute; left:0; right:0; top:100%; margin-top:4px; background:var(--white); border:1px solid var(--border); border-radius:var(--radius-sm); box-shadow:var(--shadow); max-height:260px; overflow-y:auto; z-index:60; }
+.pick-item { padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:2px; color:var(--navy); }
+.pick-item:hover { background:var(--bg); }
+.pick-item span { font-size:11px; color:var(--slate); }
+.pick-other { color:var(--blue); font-weight:600; }
 </style>
 </head>
 <body>
@@ -2479,6 +2520,14 @@ async function doBroadcast() {
 // ══════════════════════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════════════════════
+// One KPI tile for the dashboard: opens the matching filtered list
+function dashKpi_(tile, cls, icon, label, n, total) {
+  const pct = total ? Math.round(n * 100 / total) : 0;
+  return '<div class="dash-kpi ' + cls + '" data-on-click="openTile(&quot;' + tile + '&quot;)">'
+    + '<div class="dash-kpi-top"><span class="dash-kpi-ic">' + icon + '</span><span class="dash-kpi-num stat-num">' + n + '</span></div>'
+    + '<div class="dash-kpi-label">' + label + '</div>'
+    + '<div class="dash-kpi-bar"><span style="width:' + pct + '%"></span></div></div>';
+}
 function loadDashboard() {
   const el=document.getElementById('pg-dashboard');
   // Keep the last result on screen while the new one loads (shows at once on return visits)
@@ -2494,28 +2543,45 @@ function loadDashboard() {
   api('getDashboardStats').then(raw=>{
     const s = raw || {};
     const canCreate = (CU.roles||[CU.role]).some(r=>['Admin','Originator','Safety','Acceptor'].includes(r));
+    const total = s.total || 0;
+    const pct = n => total ? Math.round(n * 100 / total) : 0;
+    const mix = [
+      ['Active today', 'var(--green)', s.active || 0],
+      ['Pending approval', 'var(--amber)', s.pending || 0],
+      ['Pending closure', 'var(--purple)', s.pendingClosure || 0],
+      ['Closed', 'var(--slate)', s.closed || 0]
+    ];
     el.innerHTML=`
-      <div class="ph">
+      <div class="dash-hero">
         <div>
-          <div class="ph-title">Welcome back, ${esc(CU.name.split(' ')[0])} 👋</div>
-          <div class="ph-sub">HLL Lifecare Ltd. — Permit to Work Overview · ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
+          <div class="dash-hero-title">Welcome back, ${esc(CU.name.split(' ')[0])} 👋</div>
+          <div class="dash-hero-sub">HLL Lifecare Ltd. · Permit to Work overview · ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
         </div>
-        <div class="btn-group">
-          ${canCreate?`<button class="btn btn-primary" data-on-click="nav('new-permit')">➕ New Permit</button>`:''}
-          ${CU.role==='Admin'?`<button class="btn btn-ghost" data-on-click="openModal(&quot;bc-modal&quot;)">📢 Broadcast</button>`:''}
+        <div class="dash-hero-actions">
+          ${canCreate?`<button class="btn dash-hero-btn" data-on-click="nav('new-permit')">➕ New Permit</button>`:''}
+          ${CU.role==='Admin'?`<button class="btn dash-hero-btn ghost" data-on-click="openModal(&quot;bc-modal&quot;)">📢 Broadcast</button>`:''}
         </div>
       </div>
-      <div class="stats-grid">
-        <div class="stat-card green" data-on-click="openTile(&quot;active&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--green)">${s.active||0}</div><div class="stat-label">✅ Work Active Today</div></div>
-        <div class="stat-card amber" data-on-click="openTile(&quot;pending&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--amber)">${s.pending||0}</div><div class="stat-label">⏳ Pending Approval</div></div>
-        <div class="stat-card purple" data-on-click="openTile(&quot;closure&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--purple)">${s.pendingClosure||0}</div><div class="stat-label">🔏 Pending Closure</div></div>
-        <div class="stat-card slate" data-on-click="openTile(&quot;closed&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--slate)">${s.closed||0}</div><div class="stat-label">📁 Closed</div></div>
-        <div class="stat-card blue" data-on-click="openTile(&quot;all&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--blue)">${s.total||0}</div><div class="stat-label">📊 Total Permits</div></div>
-        ${s.expiringSoon?`<div class="stat-card red" data-on-click="openTile(&quot;expiring&quot;)" style="cursor:pointer"><div class="stat-num" style="color:var(--red)">${s.expiringSoon||0}</div><div class="stat-label">⚠️ Expiring in 48h</div></div>`:''}
+      <div class="dash-kpis">
+        ${dashKpi_('active','green','✅','Work active today', s.active||0, total)}
+        ${dashKpi_('pending','amber','⏳','Pending approval', s.pending||0, total)}
+        ${dashKpi_('closure','purple','🔏','Pending closure', s.pendingClosure||0, total)}
+        ${dashKpi_('closed','slate','📁','Closed', s.closed||0, total)}
+        ${dashKpi_('all','blue','📊','Total permits', total, total)}
       </div>
-      <div class="card">
-        <div class="form-section-header"><span class="fs-num">📋</span><span class="fs-title">Recent Permits</span></div>
-        ${permitTable(s.recent)}
+      <div class="dash-grid">
+        <div class="card">
+          <div class="form-section-header"><span class="fs-num">📋</span><span class="fs-title">Recent Permits</span></div>
+          ${permitTable(s.recent)}
+        </div>
+        <div class="dash-side">
+          <div class="card">
+            <div class="form-section-header"><span class="fs-num">📊</span><span class="fs-title">Status mix</span></div>
+            <div class="dash-mixbar">${mix.map(([k,col,n]) => `<span style="width:${pct(n)}%;background:${col}" title="${esc(k)}: ${n}"></span>`).join('')}</div>
+            ${mix.map(([k,col,n]) => `<div class="dash-leg"><span class="dot" style="background:${col}"></span>${esc(k)}<b>${n}</b></div>`).join('')}
+          </div>
+          ${s.expiringSoon?`<div class="dash-alert" data-on-click="openTile(&quot;expiring&quot;)">⚠️ ${s.expiringSoon} permit(s) expire within 48 hours — tap to view</div>`:''}
+        </div>
       </div>`;
     countUpStats_(el);
   }).catch(e=>{
@@ -2929,10 +2995,7 @@ async function renderForm() {
       <div class="ptw-row cols-2">
         <div class="ptw-field">
           <label>Permit Acceptor (Work Effected Dept.) *</label>
-          <select name="acceptorEmail" data-on-change="pickUser(this,'acceptorName','acc-custom')">
-            <option value="">— Select Permit Acceptor —</option>${acceptorOpts}
-            <option value="__custom__">Other — enter manually…</option>
-          </select>
+          ${pickCombo_('acceptor','acceptorEmail')}
           <input type="hidden" name="acceptorName">
           <div id="acc-custom" style="display:none;margin-top:6px">
             <input type="text" id="acc-n" placeholder="Acceptor full name" style="margin-bottom:5px">
@@ -2941,10 +3004,7 @@ async function renderForm() {
         </div>
         <div class="ptw-field">
           <label>Safety Dept. / In-Charge *</label>
-          <select name="safetyEmail" data-on-change="pickUser(this,'safetyName','saf-custom')">
-            <option value="">— Select Safety In-Charge —</option>${safetyOpts}
-            <option value="__custom__">Other — enter manually…</option>
-          </select>
+          ${pickCombo_('safety','safetyEmail')}
           <input type="hidden" name="safetyName">
           <div id="saf-custom" style="display:none;margin-top:6px">
             <input type="text" id="saf-n" placeholder="Safety officer full name" style="margin-bottom:5px">
@@ -3654,6 +3714,69 @@ function toggleGasSec() {
   if (arrow) arrow.style.transform = open ? '' : 'rotate(90deg)';
 }
 
+// Type-to-find pickers for the permit Acceptor and Safety In-Charge
+function pickCandidates_(kind) {
+  return (_allUsers || []).filter(u => {
+    const roles = u.roles || (u.role ? [u.role] : []);
+    if (kind === 'acceptor') return u.email !== (CU && CU.email) && roles.includes('Acceptor');
+    return roles.some(r => ['Safety', 'Safety Officer'].includes(r));
+  });
+}
+function pickCombo_(kind, field) {
+  return '<div class="pick-combo" id="pick-' + kind + '">'
+    + '<input type="text" class="field pick-input" autocomplete="off" placeholder="Type a name, department or email to search…"'
+    + ' data-on-click="pickOpen(this,&quot;' + kind + '&quot;)" data-on-input="pickTyping(this,&quot;' + kind + '&quot;)">'
+    + '<input type="hidden" name="' + field + '" value="">'
+    + '<div class="pick-list" style="display:none"></div></div>';
+}
+function pickOpen(inp, kind) {
+  const q = (inp.value || '').trim().toLowerCase();
+  const hits = pickCandidates_(kind).filter(u => !q || [u.name, u.department, u.designation, u.email]
+    .some(x => String(x || '').toLowerCase().includes(q))).slice(0, 8);
+  window._pickHits = window._pickHits || {};
+  window._pickHits[kind] = hits;
+  const box = inp.parentElement.querySelector('.pick-list');
+  box.innerHTML = hits.map((u, i) => '<div class="pick-item" data-on-click="pickChoose(&quot;' + kind + '&quot;,' + i + ')">'
+      + '<strong>' + esc(u.name) + '</strong><span>' + esc(u.designation || u.role || '') + ' · ' + esc(u.department || '') + '</span></div>').join('')
+    + '<div class="pick-item pick-other" data-on-click="pickChoose(&quot;' + kind + '&quot;,&quot;other&quot;)">Other — enter manually…</div>';
+  box.style.display = 'block';
+}
+function pickTyping(inp, kind) {
+  // Typing means nothing is chosen yet
+  const wrap = document.getElementById('pick-' + kind);
+  if (wrap) wrap.querySelector('input[type=hidden]').value = '';
+  pickOpen(inp, kind);
+}
+function pickChoose(kind, idx) {
+  const wrap = document.getElementById('pick-' + kind); if (!wrap) return;
+  const inp = wrap.querySelector('.pick-input'), hid = wrap.querySelector('input[type=hidden]'), box = wrap.querySelector('.pick-list');
+  const nameHid = document.querySelector('[name="' + (kind === 'acceptor' ? 'acceptorName' : 'safetyName') + '"]');
+  const cust = document.getElementById(kind === 'acceptor' ? 'acc-custom' : 'saf-custom');
+  if (idx === 'other') {
+    hid.value = '__custom__'; inp.value = ''; if (nameHid) nameHid.value = '';
+    if (cust) cust.style.display = 'block';
+  } else {
+    const u = ((window._pickHits || {})[kind] || [])[idx]; if (!u) return;
+    hid.value = u.email; inp.value = u.name; if (nameHid) nameHid.value = u.name;
+    if (cust) cust.style.display = 'none';
+  }
+  box.style.display = 'none';
+}
+// Shows the chosen person again when a permit is edited
+function pickSyncAll_() {
+  ['acceptor', 'safety'].forEach(kind => {
+    const wrap = document.getElementById('pick-' + kind); if (!wrap) return;
+    const hid = wrap.querySelector('input[type=hidden]'), inp = wrap.querySelector('.pick-input');
+    const cust = document.getElementById(kind === 'acceptor' ? 'acc-custom' : 'saf-custom');
+    if (hid.value === '__custom__') { if (cust) cust.style.display = 'block'; return; }
+    const u = pickCandidates_(kind).find(x => x.email === hid.value);
+    if (u) inp.value = u.name;
+  });
+}
+// Close a result list when clicking anywhere else
+document.addEventListener('click', e => {
+  document.querySelectorAll('.pick-combo .pick-list').forEach(b => { if (!b.parentElement.contains(e.target)) b.style.display = 'none'; });
+});
 function pickUser(sel, nameField, customId) {
   const opt=sel.options[sel.selectedIndex];
   const custEl=document.getElementById(customId); if(custEl) custEl.style.display=sel.value==='__custom__'?'block':'none';
@@ -4130,6 +4253,7 @@ function renderEditForm(p) {
     // Restore the work entries and their workers so they can be changed or removed
     _workEntries = JSON.parse(JSON.stringify(ex.workEntries||[]));
     renderEntriesList();
+    pickSyncAll_();
     // Store original permit no for update
     frm.dataset.editingPermitNo = p.permitNo;
     // Change submit button text
