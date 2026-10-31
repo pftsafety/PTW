@@ -3422,7 +3422,7 @@ async function renderForm() {
     <div style="display:flex;justify-content:flex-end;gap:10px;margin-bottom:20px">
       <button type="button" class="btn btn-ghost" data-on-click="nav('dashboard')">Cancel</button>
       <button type="button" class="btn btn-ghost" data-on-click="saveDraftForm()">💾 Save as draft</button>
-      <button type="button" class="btn btn-primary" style="padding:11px 36px;font-size:14px" data-on-click="submitForm(event)">✔ Submit Permit & Notify Acceptor</button>
+      <button type="button" class="btn btn-primary" style="padding:11px 36px;font-size:14px" data-on-click="submitForm(event)">✔ Submit Permit</button>
     </div>
   </div>
   </form>
@@ -4157,6 +4157,18 @@ async function toolInspectionCheck_(dates) {
   const r = await confirmSheet({ title: 'Information', lines, okLabel: 'OK, continue' });
   return r.ok;
 }
+// Full-screen cover while a permit is being saved, so the form is not shown again
+function showSubmitOverlay_() {
+  if (document.getElementById('submit-overlay')) return;
+  const o = document.createElement('div');
+  o.id = 'submit-overlay';
+  o.style.cssText = 'position:fixed;inset:0;z-index:4000;background:rgba(248,250,252,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:600;color:var(--navy)';
+  o.innerHTML = '<style>@keyframes ptwSpin{to{transform:rotate(360deg)}}</style>'
+    + '<div style="width:28px;height:28px;border-radius:50%;border:3px solid #cbd5e1;border-top-color:var(--navy);animation:ptwSpin .8s linear infinite"></div>'
+    + '<div>Creating permit… please wait</div>';
+  document.body.appendChild(o);
+}
+function hideSubmitOverlay_() { document.getElementById('submit-overlay')?.remove(); }
 async function submitForm(e) {
   if (e && e.preventDefault) e.preventDefault();
   // Find form element regardless of how submitForm was called
@@ -4272,10 +4284,6 @@ async function submitForm(e) {
     }
   }
 
-  // Warn if a listed worker is already on another permit in progress
-  const _certs = _workEntries.flatMap(en => (en.workers || []).map(w => w.certNo));
-  if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) return;
-
   // Power tool inspection warning before the originator signs (SOP 4.2)
   if (!(await toolInspectionCheck_((_workEntries || []).map(e => e.date)))) return;
   // Open originator signature modal — submit happens after signing
@@ -4293,6 +4301,10 @@ async function submitForm(e) {
         }
       } catch(e) {}
 
+      // Warn if a listed worker is already on another permit in progress (checked once signed)
+      const _certs = _workEntries.flatMap(en => (en.workers || []).map(w => w.certNo));
+      if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) return;
+      showSubmitOverlay_();   // hides the form while the permit is saved
       load(true);
       const editingNo = document.getElementById('ptw-form')?.dataset?.editingPermitNo;
   if (editingNo) payload.permitNo = editingNo;
@@ -4306,7 +4318,7 @@ async function submitForm(e) {
           toast((editingNo?'Permit updated ✅':'Permit '+r.permitNo+' created ✅'),'ok');
           loadNotifications();
           if (!editingNo) { try { frm.reset(); } catch (x) {} _workEntries = []; if (typeof renderEntriesList === 'function') renderEntriesList(); }
-          setTimeout(() => nav('view-permit', r.permitNo), 300);   // open the new permit at once
+          setTimeout(() => { nav('view-permit', r.permitNo); hideSubmitOverlay_(); }, 300);   // open the new permit at once
           // Files are saved in the background; the permit view is refreshed when they are in
           try {
             if (suppFile) {
@@ -4322,6 +4334,7 @@ async function submitForm(e) {
         })
         .catch(er => {
           window._createInFlight = false;
+          hideSubmitOverlay_();
           load(false);
           const msg = er ? er.message : 'Unknown error. Check network and try again.';
           toast(msg, 'err');
