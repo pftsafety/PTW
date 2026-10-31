@@ -4665,7 +4665,6 @@ function buildView(el, p, log, tests, scans, sigs) {
               ${sup.excavation?`<span class="badge" style="background:#f5f3ff;color:#6d28d9">🟣 Excavation (${sup.excSno||'—'})</span>`:''}
               ${sup.confinedSpace?`<span class="badge badge-warn" style="background:#fef3c7;color:#92400e">🔶 Confined Space (${sup.csSno||'—'})</span>`:''}
             </div>
-            ${supDocLink}
           </div>` : ''}
       </div>
 
@@ -4914,6 +4913,20 @@ function buildView(el, p, log, tests, scans, sigs) {
         <div style="font-weight:800;color:#7f1d1d;font-size:15px;margin-bottom:4px">🚨 Emergency Contact</div>
         <div style="font-size:13px;color:#7f1d1d">Contractor: <strong>${esc(ex.contractorEmergency)}</strong></div>
       </div>` : ''}
+
+      <!-- Supporting permit: answers, serial numbers and the uploaded document -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">⚡</div><div class="fs-title">Supporting Permit</div></div>
+        ${(() => { const sp = p.supporting || {};
+          const items = [['Electrical', !!sp.electrical, sp.elecSno], ['Excavation', !!sp.excavation, sp.excSno], ['Confined Space', !!sp.confinedSpace, sp.csSno]];
+          const yes = items.filter(i => i[1]);
+          if (!yes.length) return '<div style="font-size:13px;color:var(--slate)">No supporting permit required.</div>';
+          const list = yes.map(i => '<div style="font-size:13px;padding:4px 0"><strong>' + esc(i[0]) + '</strong> — S.No: ' + (i[2] ? esc(i[2]) : '<span style="color:#b45309">not entered</span>') + '</div>').join('');
+          const doc = _supUp
+            ? '<div style="font-size:12px;margin-top:8px;color:var(--slate)">Document: ' + esc(_supUp.fileName || '') + ' · <a href="' + esc(_supUp.url || '#') + '" target="_blank" rel="noopener" style="color:var(--blue)">Open file</a></div>'
+            : '<div style="font-size:12px;margin-top:8px;color:#b45309">Supporting permit document not uploaded yet.</div>';
+          return list + doc; })()}
+      </div>
 
       <!-- Competency & Medical -->
       <div class="card">
