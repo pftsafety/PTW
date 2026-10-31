@@ -3762,18 +3762,7 @@ function removeEntry(id) {
 }
 
 // Work entries list, then the power tool warning under it (shown while the form is filled in)
-function renderEntriesList() { renderEntriesListCore_(); updateToolInspectionBanner_(); }
-// Shows the power tool warning on the form when a work entry falls in a later month (SOP 4.2)
-function updateToolInspectionBanner_() {
-  const err = document.getElementById('we-err');
-  if (!err || !err.parentNode) return;
-  let b = document.getElementById('tool-insp-banner');
-  if (!b) { b = document.createElement('div'); b.id = 'tool-insp-banner'; err.parentNode.insertBefore(b, err); }
-  const lines = toolInspectionLines_((_workEntries || []).map(e => e.date));
-  if (!lines.length) { b.style.display = 'none'; b.innerHTML = ''; return; }
-  b.style.cssText = 'display:block;margin:8px 0;padding:10px 12px;border-radius:var(--radius-sm);background:#fffbeb;border:1px solid #fcd34d;color:#92400e;font-size:12px;line-height:1.5';
-  b.innerHTML = '⚠️ <strong>Power tool inspection</strong><br>' + lines.map(l => esc(l)).join('<br>');
-}
+function renderEntriesList() { renderEntriesListCore_(); }
 function renderEntriesListCore_() {
   const el = document.getElementById('work-entries-list');
   if (!el) return;
@@ -4158,28 +4147,14 @@ const TOOL_STICKER_MONTHS_ = ['January','February','March','April','May','June',
 const TOOL_STICKER_COLOURS_ = ['Violet','Blue','Pink','Maroon','Yellow','Orange','Green','Brown','White','Golden','Neon green','Royal Blue'];
 // Lines for the warning when a shift falls in a later month than today's inspection
 function toolInspectionLines_(dates) {
-  const now = new Date(), curM = now.getMonth(), curY = now.getFullYear(), curKey = curY * 12 + curM;
-  const later = [...new Set((dates || []).filter(Boolean).map(d => {
-    const x = new Date(d + 'T00:00:00'); return isNaN(x) ? null : x.getFullYear() * 12 + x.getMonth();
-  }).filter(key => key !== null && key > curKey))].sort((a, b) => a - b);
-  // Always shown: validity and this month's sticker
-  const lines = [
-    'Power tools are inspected monthly. Each inspection is valid for one month only.',
-    'This month (' + TOOL_STICKER_MONTHS_[curM] + ' ' + curY + ') tools must carry the ' + TOOL_STICKER_COLOURS_[curM] + ' sticker.'
-  ];
-  // Added when a work date falls in a later month
-  later.forEach(key => {
-    const m = key % 12, y = Math.floor(key / 12);
-    lines.push(TOOL_STICKER_MONTHS_[m] + ' ' + y + ': tools must be re-inspected and carry the ' + TOOL_STICKER_COLOURS_[m] + ' sticker before work starts.');
-  });
-  if (later.length) lines.push('Submit the tools to the Electrical Section for re-inspection before this work starts.');
-  return lines;
+  // Information only: tools are certified by the Electrical Section before the work starts
+  return ['Power tools used for this work should be certified by the Electrical Section before the work starts.'];
 }
 // Originator warning before signing; the originator can continue after reading it
 async function toolInspectionCheck_(dates) {
   const lines = toolInspectionLines_(dates);
   if (!lines.length) return true;
-  const r = await confirmSheet({ title: 'Power tool inspection', lines, okLabel: 'I understand — continue' });
+  const r = await confirmSheet({ title: 'Information', lines, okLabel: 'OK, continue' });
   return r.ok;
 }
 async function submitForm(e) {
@@ -4228,6 +4203,15 @@ async function submitForm(e) {
   if (safetyEmail  ==='__custom__') { safetyEmail  =document.getElementById('saf-e').value; safetyName  =document.getElementById('saf-n').value; }
   if (!acceptorEmail||!safetyEmail) { toast('Select Permit Acceptor and Safety In-Charge','err'); return; }
 
+  // Safety harness: the serial number is required when Safety Harness is ticked in PPE controls
+  const _harnessTicked = frm.querySelector('input[name=ppe][value*="Safety Harness"]:checked');
+  const _harnessNo = ((frm.querySelector('[name=safetyHarnessNo]') || {}).value || '').trim();
+  if (_harnessTicked && !_harnessNo) {
+    toast('Enter the Safety Harness S.No. (Safety Harness is ticked in PPE controls)','err');
+    const _inp = document.getElementById('harness-sno-input');
+    if (_inp) { _inp.focus(); _inp.classList.add('field-shake'); setTimeout(() => _inp.classList.remove('field-shake'), 1200); }
+    return;
+  }
   const harnessEl=frm.querySelector('[name=safetyHarnessNo]');
   const payload={
     type:typeEl.value, validFrom:fd.get('validFrom'),
@@ -5508,23 +5492,26 @@ async function warnWorkerConflicts(certNos, permitNo) {
 async function doApprove(no, role) {
   // If Acceptor, validate all workers have acked first
   if (role === 'Acceptor') {
-    load(true);
-    try {
-      const p = await api('getPermitByNo', {permitNo:no});
+    // Use the permit already on screen; fetch only if it is not loaded
+    let p = (_currentPermitView && _currentPermitView.permitNo === no) ? _currentPermitView : null;
+    if (!p) {
+      load(true);
+      try { p = await api('getPermitByNo', {permitNo:no}); } catch(e) { load(false); toast(e.message,'err'); return; }
       load(false);
-      if (!p) { toast('Permit not found','err'); return; }
-      const ex = p.extras || {};
-      const acked = ex.workerAckCount || 0;
-      const total = ex.workerAckTotal || 0;
-      if (total > 0 && acked < total) {
-        toast('Cannot approve — '+acked+' of '+total+' workers have acknowledged. Originator must collect all worker signatures first.','err');
-        return;
-      }
-      if (p.status !== 'Pending Acceptor') {
-        toast('Permit status is "'+p.status+'" — not ready for Acceptor approval.','warn');
-        return;
-      }
-    } catch(e) { load(false); toast(e.message,'err'); return; }
+    }
+    if (!p) { toast('Permit not found','err'); return; }
+
+    const ex = p.extras || {};
+    const acked = ex.workerAckCount || 0;
+    const total = ex.workerAckTotal || 0;
+    if (total > 0 && acked < total) {
+      toast('Cannot approve — '+acked+' of '+total+' workers have acknowledged. Originator must collect all worker signatures first.','err');
+      return;
+    }
+    if (p.status !== 'Pending Acceptor') {
+      toast('Permit status is "'+p.status+'" — not ready for Acceptor approval.','warn');
+      return;
+    }
   }
   openSigModal(
     role+' Sign-off',
@@ -5541,7 +5528,7 @@ async function doApprove(no, role) {
             const status = (r&&r.newStatus)||'Updated';
             toast('Approved ✅ — '+status, 'ok');
             loadNotifications();
-            setTimeout(()=>loadView(no), 1500);
+            setTimeout(()=>loadView(no), 400);
           } else {
             toast('Permit rejected','warn');
             loadNotifications();
