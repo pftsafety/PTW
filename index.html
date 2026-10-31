@@ -800,6 +800,24 @@ tbody tr:last-child td { border-bottom:none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
+
+/* ── Motion polish: smoother press, focus and close effects ── */
+.btn { transition: transform .15s ease, box-shadow .15s ease, background-color .15s ease, color .15s ease, border-color .15s ease, opacity .15s ease; }
+.btn:active { transform: scale(.97); transition-duration: .08s; }
+.nav-item { transition: background-color .2s ease, color .2s ease; }
+.stat-card:active { transform: scale(.985); }
+.field { transition: border-color .18s ease, box-shadow .18s ease; }
+.modal-bg.closing { display: flex; animation: bgOut .18s ease forwards; }
+.modal-bg.closing .modal-box { animation: boxOut .18s ease forwards; }
+@keyframes bgOut { to { opacity: 0; } }
+@keyframes boxOut { to { opacity: 0; transform: translateY(14px) scale(.97); } }
+
+/* ── Additional motion: notification panel, permit cards ── */
+#notif-panel.open { animation: slideInRight .28s cubic-bezier(.2,.8,.2,1) both; }
+#notif-backdrop.open { animation: fadeIn .2s ease both; }
+.card-in { animation: cardIn .35s ease both; }
+@keyframes slideInRight { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes cardIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 </style>
 </head>
 <body>
@@ -2081,6 +2099,22 @@ const PAGE_TITLES={
   'sub-approval':'Substitute Acceptor Approval'
 };
 
+// Dashboard numbers count up to their values (skipped when reduced motion is on)
+function countUpStats_(root) {
+  if (!root || (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  root.querySelectorAll('.stat-num').forEach(num => {
+    const end = parseInt(num.textContent, 10);
+    if (isNaN(end) || end === 0) return;
+    const t0 = performance.now(), dur = 500;
+    const frame = now => {
+      const p = Math.min(1, (now - t0) / dur);
+      num.textContent = Math.round(end * (1 - Math.pow(1 - p, 3)));
+      if (p < 1) requestAnimationFrame(frame);
+    };
+    num.textContent = '0';
+    requestAnimationFrame(frame);
+  });
+}
 function nav(page, arg) {
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
@@ -2240,8 +2274,12 @@ function showChangePw() {
 function closeCpw() { document.getElementById('cpw-modal').classList.remove('open'); }
 function closeBc()  { document.getElementById('bc-modal').classList.remove('open'); }
 // ── Helpers called from data-on-* handlers ──
-function closeModal(id) { const el = document.getElementById(id); if (el) el.classList.remove('open'); }
-function openModal(id) { const el = document.getElementById(id); if (el) el.classList.add('open'); }
+function closeModal(id) {
+  const el = document.getElementById(id); if (!el || !el.classList.contains('open')) return;
+  el.classList.add('closing');
+  setTimeout(() => { if (el.classList.contains('closing')) el.classList.remove('open', 'closing'); }, 180);
+}
+function openModal(id) { const el = document.getElementById(id); if (el) { el.classList.remove('closing'); el.classList.add('open'); } }
 function digitsOnly(el) { el.value = el.value.replace(/[^0-9]/g, ''); }
 function setBg(el, c) { el.style.background = c; }
 function removeClosestRow(el) { const tr = el.closest('tr'); if (tr) tr.remove(); }
@@ -2443,7 +2481,8 @@ async function doBroadcast() {
 // ══════════════════════════════════════════════════════════════
 function loadDashboard() {
   const el=document.getElementById('pg-dashboard');
-  el.innerHTML=`
+  // Keep the last result on screen while the new one loads (shows at once on return visits)
+  if (!el.innerHTML.trim()) el.innerHTML=`
     <div class="ph" style="padding:20px">
       <div class="ph-title">&nbsp;</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0">
@@ -2478,6 +2517,7 @@ function loadDashboard() {
         <div class="form-section-header"><span class="fs-num">📋</span><span class="fs-title">Recent Permits</span></div>
         ${permitTable(s.recent)}
       </div>`;
+    countUpStats_(el);
   }).catch(e=>{
     console.error('Dashboard error:', e);
     if(e.message&&e.message.includes('Session expired')){logout();return;}
@@ -2571,7 +2611,8 @@ function confirmSheet(opts) {
     const finish = ok => {
       if (done) return; done = true;
       const note = ((wrap.querySelector('#cs-note')||{}).value||'').trim();
-      wrap.remove();
+      wrap.classList.add('closing');
+      setTimeout(() => wrap.remove(), 180);
       resolve({ ok, choice: chosen, note });
     };
     wrap.querySelectorAll('[data-ch]').forEach(b => b.onclick = () => {
@@ -2654,11 +2695,15 @@ function loadList(scope) {
   window['_tile_'+scope] = window._tile || null; window._tile = null;
   const pgId='pg-'+(scope==='my'?'my':'all')+'-permits';
   const el=document.getElementById(pgId);
-  el.innerHTML=`
+  const _key = scope + '|' + (window['_tile_'+scope] || '');
+  if (el.dataset.key !== _key || !el.innerHTML.trim()) {
+    el.dataset.key = _key;
+    el.innerHTML=`
     <div style="padding:16px">
       <div class="skel" style="height:36px;border-radius:8px;margin-bottom:12px"></div>
       ${Array.from({length:5},(_,i)=>`<div class="skel" style="height:80px;border-radius:10px;margin-bottom:8px;animation-delay:${i*.08}s"></div>`).join('')}
     </div>`;
+  }
   api(scope==='my'?'getMyPermits':'getAllPermits').then(raw=>{
     const permits = Array.isArray(raw) ? raw : (Array.isArray(raw?.permits) ? raw.permits : []);
     window['_p_'+scope]=permits;
@@ -4397,6 +4442,7 @@ function loadView(permitNo) {
   api('getPermitView',{permitNo}).then(v=>{
     if(!v||!v.permit){ el.innerHTML='<div class="card">Permit not found.</div>'; return; }
     buildView(el, v.permit, v.log||[], v.tests||[], v.scans||[], v.sigs||[]);
+    el.querySelectorAll('.layout-split > div > .card').forEach((cd, i) => { cd.style.animationDelay = (Math.min(i, 8) * 60) + 'ms'; cd.classList.add('card-in'); });
     try {
       const snap = JSON.stringify(((v.permit.extras||{}).shifts||[]).map(s => [!!s.originatorSignTime, !!s.acceptorSignTime, !!s.safetySignTime, !!s.dutyOfficerSignTime, !!s.jobStartTime, !!s.jobStopTime, s.shiftStatus]));
       const key = 'snap_' + permitNo, prev = sessionStorage.getItem(key);
