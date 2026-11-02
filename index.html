@@ -858,7 +858,138 @@ tbody tr:last-child td { border-bottom:none; }
 .pick-item { padding:9px 12px; cursor:pointer; font-size:13px; border-bottom:1px solid var(--border); display:flex; flex-direction:column; gap:2px; color:var(--navy); }
 .pick-item:hover { background:var(--bg); }
 .pick-item span { font-size:11px; color:var(--slate); }
-.pick-other { color:var(--blue); font-weight:600; }
+.pick-empty { color:var(--slate); font-weight:500; cursor:default; }
+
+/* ── New permit form: visual refresh (scoped to the form page) ── */
+#pg-new-permit .ptw-section { background:#fff; border:1px solid #e6ecf3; border-radius:16px; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 6px 18px rgba(15,23,42,.05); margin-bottom:16px; overflow:hidden; }
+#pg-new-permit .ptw-sec-head { background:linear-gradient(180deg,#ffffff,#f8fafc); border-bottom:1px solid #eef2f7; padding:14px 18px; }
+#pg-new-permit .ptw-sec-num { width:30px; height:30px; border-radius:10px; background:var(--navy); box-shadow:none; font-size:12px; }
+#pg-new-permit .ptw-sec-title { font-size:14px; font-weight:800; text-transform:none; letter-spacing:0; }
+#pg-new-permit .ptw-sec-body { padding:18px 20px 20px; }
+#pg-new-permit .ptw-row { gap:16px; margin-bottom:16px; }
+#pg-new-permit .ptw-field { gap:6px; }
+#pg-new-permit .field-label, #pg-new-permit .ptw-field > label { font-size:11.5px; font-weight:700; color:#475569; letter-spacing:.2px; }
+#pg-new-permit input[type=text], #pg-new-permit input[type=date], #pg-new-permit input[type=time], #pg-new-permit input[type=number], #pg-new-permit input[type=tel], #pg-new-permit input[type=email], #pg-new-permit select, #pg-new-permit textarea, #pg-new-permit .field { border:1.5px solid #dbe3ee; border-radius:10px; padding:10px 12px; font-size:14px; background:#fff; color:var(--navy); transition:border-color .15s ease, box-shadow .15s ease; }
+#pg-new-permit textarea { min-height:70px; }
+#pg-new-permit input:focus, #pg-new-permit select:focus, #pg-new-permit textarea:focus, #pg-new-permit .field:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 4px rgba(37,99,235,.12); }
+#pg-new-permit .ptw-check-item { background:#fff; border:1.5px solid #e2e8f0; border-radius:12px; padding:10px 12px; font-size:13px; color:var(--navy); transition:border-color .15s ease, background-color .15s ease, box-shadow .15s ease; }
+#pg-new-permit .ptw-check-item:hover { border-color:#94a3b8; }
+#pg-new-permit .ptw-check-item:has(input:checked) { border-color:#16a34a; background:#f0fdf4; box-shadow:0 0 0 3px rgba(22,163,74,.10); color:#14532d; }
+#pg-new-permit .ptw-type-btn { border-radius:14px; padding:14px 16px; font-size:14px; background:#fff; border:1.5px solid #e2e8f0; color:var(--navy); }
+#pg-new-permit .ptw-type-btn:hover { border-color:#94a3b8; }
+#pg-new-permit .ptw-type-btn:has(input:checked) { border-color:#2563eb; background:#eff6ff; color:#1e3a8a; box-shadow:0 0 0 3px rgba(37,99,235,.12); }
+#pg-new-permit .sup-yn-lbl { border-radius:10px; padding:8px 14px; font-size:13px; font-weight:700; background:#fff; color:var(--navy); }
+#pg-new-permit .sup-yn-lbl:has(input:checked) { border-color:#2563eb; background:#eff6ff; color:#1e3a8a; }
+#pg-new-permit .ptw-sup-item { background:#fff; border-radius:14px; border:1.5px solid #e2e8f0; padding:14px; }
+#pg-new-permit .alert { border-radius:12px; }
+#pg-new-permit .btn-primary { border-radius:12px; padding:11px 20px; font-weight:800; box-shadow:0 4px 12px rgba(15,23,42,.18); }
+#pg-new-permit .btn-ghost { border-radius:12px; }
+
+/* ── New permit form: UX refresh ── */
+#pg-new-permit { padding-bottom:110px; }
+#pg-new-permit .ptw-section { transition:border-color .2s ease, box-shadow .2s ease; }
+#pg-new-permit .ptw-section:focus-within { border-color:#bfdbfe; box-shadow:0 0 0 4px rgba(37,99,235,.08), 0 10px 24px rgba(15,23,42,.07); }
+#pg-new-permit .ptw-sec-head { transition:background-color .15s ease; }
+#pg-new-permit .ptw-sec-head:hover { background:#f1f5fb; }
+#pg-new-permit .ptw-sec-title { font-size:15px; letter-spacing:-.1px; }
+#pg-new-permit .ptw-row:not([style*="grid-template"]) { grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); }
+#pg-new-permit .ptw-field label, #pg-new-permit .ptw-field > .field-label { display:flex; align-items:center; gap:4px; }
+#pg-new-permit small, #pg-new-permit .hint { color:#64748b; font-size:11.5px; line-height:1.45; }
+#pg-new-permit #form-sec-nav { position:sticky; top:0; z-index:30; padding:8px 0 12px !important; background:linear-gradient(180deg,var(--bg) 70%,rgba(248,250,252,0)) !important; }
+#pg-new-permit #form-sec-nav button { border-radius:999px !important; background:#fff !important; border:1px solid #e2e8f0 !important; padding:6px 12px !important; font-size:12px !important; font-weight:700 !important; color:#334155 !important; box-shadow:0 1px 2px rgba(15,23,42,.05) !important; white-space:nowrap; transition:border-color .15s ease, color .15s ease; }
+#pg-new-permit #form-sec-nav button:hover { border-color:#2563eb !important; color:#1d4ed8 !important; }
+#pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) { position:fixed; left:0; right:0; bottom:0; z-index:40; display:flex; justify-content:flex-end; gap:10px; flex-wrap:wrap; padding:12px 20px; background:rgba(255,255,255,.94); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); border-top:1px solid #e6ecf3; box-shadow:0 -6px 20px rgba(15,23,42,.06); }
+@media (max-width:720px) {
+  #pg-new-permit .ptw-sec-body { padding:14px 14px 16px; }
+  #pg-new-permit .ptw-sec-head { padding:12px 14px; }
+  #pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) { padding:10px 12px; }
+  #pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) > button { flex:1 1 auto; justify-content:center; }
+}
+
+/* ── New permit form: progress and completion ── */
+#pg-new-permit .ptw-section.sec-done .ptw-sec-num { background:#16a34a; box-shadow:none; }
+#pg-new-permit .ptw-section.sec-done .ptw-sec-head { border-bottom-color:#dcfce7; }
+#pg-new-permit .ptw-field:focus-within > label, #pg-new-permit .ptw-field:focus-within > .field-label { color:#2563eb; }
+
+/* ── New permit form: depth, shadow and response ── */
+#pg-new-permit { background:radial-gradient(1100px 420px at 50% -120px, rgba(37,99,235,.07), transparent 70%); }
+@keyframes pfFadeUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+@keyframes pfPop { 0% { transform:scale(.8); } 60% { transform:scale(1.12); } 100% { transform:scale(1); } }
+#pg-new-permit .ptw-section { box-shadow:0 1px 1px rgba(15,23,42,.04), 0 2px 4px rgba(15,23,42,.04), 0 8px 18px rgba(15,23,42,.06); transition:transform .25s ease, box-shadow .3s ease, border-color .2s ease; animation:pfFadeUp .35s ease both; }
+#pg-new-permit .ptw-section:focus-within { transform:translateY(-2px); border-color:#bfdbfe; box-shadow:0 0 0 4px rgba(37,99,235,.10), 0 20px 40px rgba(15,23,42,.11); }
+#pg-new-permit .ptw-sec-head { transition:background .2s ease; }
+#pg-new-permit .ptw-sec-num { transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s ease; }
+#pg-new-permit .ptw-section:focus-within .ptw-sec-num { transform:scale(1.08); box-shadow:none; }
+#pg-new-permit .ptw-section.sec-done .ptw-sec-num { animation:pfPop .45s ease; }
+#pg-new-permit input[type=text], #pg-new-permit input[type=date], #pg-new-permit input[type=time], #pg-new-permit input[type=number], #pg-new-permit input[type=tel], #pg-new-permit input[type=email], #pg-new-permit select, #pg-new-permit textarea, #pg-new-permit .field { box-shadow:inset 0 1px 2px rgba(15,23,42,.06); }
+#pg-new-permit input:hover, #pg-new-permit select:hover, #pg-new-permit textarea:hover { border-color:#94a3b8; }
+#pg-new-permit input:focus, #pg-new-permit select:focus, #pg-new-permit textarea:focus { box-shadow:0 0 0 4px rgba(37,99,235,.14), 0 6px 14px rgba(37,99,235,.10); }
+#pg-new-permit .ptw-check-item { box-shadow:0 1px 2px rgba(15,23,42,.06); transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease, background-color .2s ease; }
+#pg-new-permit .ptw-check-item:active { transform:scale(.97); }
+#pg-new-permit .ptw-check-item:has(input:checked) { box-shadow:0 6px 14px rgba(22,163,74,.16), inset 0 0 0 1px rgba(22,163,74,.22); }
+#pg-new-permit .ptw-type-btn { box-shadow:0 1px 2px rgba(15,23,42,.06); transition:transform .18s ease, box-shadow .25s ease, border-color .2s ease, background-color .2s ease; }
+#pg-new-permit .ptw-type-btn:active { transform:scale(.96); }
+#pg-new-permit .ptw-type-btn:has(input:checked) { box-shadow:0 10px 22px rgba(37,99,235,.20), inset 0 0 0 1px rgba(37,99,235,.25); }
+#pg-new-permit .sup-yn-lbl { box-shadow:0 1px 2px rgba(15,23,42,.06); transition:transform .15s ease, box-shadow .2s ease, background-color .2s ease, border-color .2s ease; }
+#pg-new-permit .sup-yn-lbl:active { transform:scale(.95); }
+#pg-new-permit .sup-yn-lbl:has(input:checked) { box-shadow:0 6px 14px rgba(37,99,235,.18); }
+#pg-new-permit .ptw-sup-item { box-shadow:0 2px 8px rgba(15,23,42,.06); }
+#pg-new-permit #form-sec-nav { background:rgba(248,250,252,.78) !important; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
+#pg-new-permit #form-sec-nav button { transition:transform .15s ease, box-shadow .2s ease, border-color .15s ease, color .15s ease !important; }
+#pg-new-permit #form-sec-nav button:hover { transform:translateY(-1px); box-shadow:0 6px 14px rgba(15,23,42,.10) !important; }
+#pg-new-permit #form-sec-nav button:active { transform:scale(.96); }
+#pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) { box-shadow:0 -10px 30px rgba(15,23,42,.10); }
+#pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) > button { transition:transform .15s ease, box-shadow .2s ease; }
+#pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) > button:hover { transform:translateY(-1px); }
+#pg-new-permit div:has(> button[data-on-click="submitForm(event)"]) > button:active { transform:scale(.97); }
+#pg-new-permit .btn-primary { box-shadow:0 8px 20px rgba(15,23,42,.22); transition:transform .15s ease, box-shadow .2s ease; }
+#pg-new-permit .btn-primary:hover { transform:translateY(-1px); box-shadow:0 12px 26px rgba(15,23,42,.26); }
+#pg-new-permit .btn-primary:active { transform:scale(.97); }
+#pg-new-permit .btn-ghost { transition:transform .15s ease, box-shadow .2s ease, background-color .15s ease; }
+#pg-new-permit .btn-ghost:hover { box-shadow:0 4px 10px rgba(15,23,42,.08); }
+#pg-new-permit .btn-ghost:active { transform:scale(.97); }
+@media (hover:none) {
+  #pg-new-permit .ptw-section:focus-within { transform:none; }
+  #pg-new-permit .ptw-check-item:hover, #pg-new-permit .ptw-type-btn:hover, #pg-new-permit #form-sec-nav button:hover { transform:none; }
+}
+
+/* ── Permit detail page: UI refresh (scoped to the permit view) ── */
+#pg-view-permit { background:radial-gradient(1100px 380px at 50% -140px, rgba(37,99,235,.06), transparent 70%); }
+#pg-view-permit .ph { background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 100%); color:#fff; border-radius:16px; padding:20px 22px; margin-bottom:16px; box-shadow:0 10px 28px rgba(15,23,42,.22); flex-wrap:wrap; gap:14px; }
+#pg-view-permit .ph-title, #pg-view-permit .ph h1, #pg-view-permit .ph h2 { color:#fff !important; font-weight:800; letter-spacing:-.3px; }
+#pg-view-permit .ph-sub { color:#cbd5e1 !important; }
+#pg-view-permit .ph .btn-group { display:flex; gap:8px; flex-wrap:wrap; }
+#pg-view-permit .ph .btn { border-radius:10px; }
+#pg-view-permit .ph .btn-ghost { background:rgba(255,255,255,.12) !important; color:#fff !important; border-color:rgba(255,255,255,.22) !important; }
+#pg-view-permit .ph .btn-ghost:hover { background:rgba(255,255,255,.20) !important; }
+#pg-view-permit .card { border-radius:16px; border:1px solid #e6ecf3; box-shadow:0 1px 2px rgba(15,23,42,.04), 0 6px 16px rgba(15,23,42,.06); transition:box-shadow .25s ease, transform .25s ease; }
+#pg-view-permit .card:hover { box-shadow:0 2px 4px rgba(15,23,42,.05), 0 12px 26px rgba(15,23,42,.09); }
+#pg-view-permit .form-section-header { display:flex; align-items:center; gap:10px; padding-bottom:12px; margin-bottom:14px; border-bottom:1px solid #eef2f7; }
+#pg-view-permit .fs-num { width:30px; height:30px; border-radius:10px; background:var(--navy); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; box-shadow:none; flex-shrink:0; }
+#pg-view-permit .fs-title { font-size:14px; font-weight:800; color:var(--navy); letter-spacing:.2px; }
+#pg-view-permit .layout-split { gap:18px; }
+#pg-view-permit .badge { border-radius:999px; padding:4px 10px; font-weight:700; font-size:11.5px; letter-spacing:.1px; box-shadow:inset 0 0 0 1px rgba(15,23,42,.06); }
+#pg-view-permit .highlight-card { border-radius:14px; box-shadow:0 6px 16px rgba(15,23,42,.08); }
+#pg-view-permit .alert { border-radius:12px; box-shadow:0 2px 6px rgba(15,23,42,.05); }
+#pg-view-permit .tl-h { padding:10px 6px 12px; border-radius:12px; background:linear-gradient(180deg,#f8fbff,#f5f8fc); }
+#pg-view-permit details { border-radius:12px; }
+#pg-view-permit details > summary { list-style:none; cursor:pointer; padding:10px 12px; border-radius:10px; background:#f8fafc; border:1px solid #e6ecf3; font-weight:700; color:var(--navy); transition:background .15s ease, box-shadow .15s ease; }
+#pg-view-permit details > summary::-webkit-details-marker { display:none; }
+#pg-view-permit details > summary:hover { background:#eef4fb; box-shadow:0 2px 6px rgba(15,23,42,.06); }
+#pg-view-permit .btn { transition:transform .15s ease, box-shadow .2s ease, background-color .15s ease; }
+#pg-view-permit .btn:hover { box-shadow:0 4px 12px rgba(15,23,42,.10); }
+#pg-view-permit .btn-primary { box-shadow:0 6px 16px rgba(15,23,42,.20); }
+#pg-view-permit .btn:active { transform:scale(.97); }
+#pg-view-permit dt { color:#64748b; }
+#pg-view-permit dd { color:var(--navy); }
+@media (max-width:820px) {
+  #pg-view-permit .ph { padding:16px; border-radius:14px; }
+  #pg-view-permit .card { padding:16px; border-radius:14px; }
+  #pg-view-permit .layout-split { gap:14px; }
+}
+@media (hover:none) {
+  #pg-view-permit .card:hover { box-shadow:0 1px 2px rgba(15,23,42,.04), 0 6px 16px rgba(15,23,42,.06); }
+}
 </style>
 </head>
 <body>
@@ -2115,6 +2246,7 @@ function logout() {
 }
 
 function launchApp() {
+  setTimeout(() => loadInductionCache_(false), 300);   // induction list loads in the background
   setTimeout(handlePrintHash, 400);   // a print link from the scanner prints as soon as the app is open
   const appEl=document.getElementById('app'); if(appEl) appEl.style.display='flex';
   ['login-screen','forgot-screen','setup-screen'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
@@ -2428,6 +2560,12 @@ function renderTags(arr, bg, col) {
 }
 
 // Permit table
+// Colour for each work type chip
+function typeChipStyle_(t) {
+  const map = { 'Hot Work': ['#fee2e2','#b91c1c'], 'Cold Work': ['#dbeafe','#1d4ed8'], 'Work at Height': ['#ffedd5','#c2410c'] };
+  const k = map[t] || ['#f1f5f9','#475569'];
+  return 'background:' + k[0] + ';color:' + k[1] + ';border:1px solid ' + k[1] + '33';
+}
 function permitTable(permits) {
   if (!permits||!permits.length)
     return `<div class="empty-state"><div class="es-icon">📋</div><div class="es-title">No permits found</div><div class="es-sub">Permits will appear here once created.</div></div>`;
@@ -2435,7 +2573,7 @@ function permitTable(permits) {
     <thead><tr><th>Permit No</th><th>Type</th><th>Status</th><th>Description</th><th>Area</th><th>Originator</th><th>Valid To</th><th></th></tr></thead>
     <tbody>${permits.map((p,i)=>`<tr class="row-in" data-permit="${p.permitNo}" style="animation-delay:${Math.min(i,15)*30}ms">
       <td><strong style="color:var(--blue-dark)">${p.permitNo}</strong></td>
-      <td><span class="badge badge-type">${esc(p.type)||'—'}</span></td>
+      <td><span class="badge badge-type" style="${typeChipStyle_(p.type)}">${esc(p.type)||'—'}</span></td>
       <td>${sbadge(p.status)}</td>
       <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.jobDescription)}">${esc(p.jobDescription)||'—'}</td>
       <td>${esc(p.workArea)||'—'}</td>
@@ -2569,19 +2707,10 @@ function loadDashboard() {
         ${dashKpi_('closed','slate','📁','Closed', s.closed||0, total)}
         ${dashKpi_('all','blue','📊','Total permits', total, total)}
       </div>
-      <div class="dash-grid">
-        <div class="card">
-          <div class="form-section-header"><span class="fs-num">📋</span><span class="fs-title">Recent Permits</span></div>
-          ${permitTable(s.recent)}
-        </div>
-        <div class="dash-side">
-          <div class="card">
-            <div class="form-section-header"><span class="fs-num">📊</span><span class="fs-title">Status mix</span></div>
-            <div class="dash-mixbar">${mix.map(([k,col,n]) => `<span style="width:${pct(n)}%;background:${col}" title="${esc(k)}: ${n}"></span>`).join('')}</div>
-            ${mix.map(([k,col,n]) => `<div class="dash-leg"><span class="dot" style="background:${col}"></span>${esc(k)}<b>${n}</b></div>`).join('')}
-          </div>
-          ${s.expiringSoon?`<div class="dash-alert" data-on-click="openTile(&quot;expiring&quot;)">⚠️ ${s.expiringSoon} permit(s) expire within 48 hours — tap to view</div>`:''}
-        </div>
+      ${s.expiringSoon?`<div class="dash-alert" data-on-click="openTile(&quot;expiring&quot;)" style="margin-bottom:16px">⚠️ ${s.expiringSoon} permit(s) expire within 48 hours — tap to view</div>`:''}
+      <div class="card">
+        <div class="form-section-header"><span class="fs-num">📋</span><span class="fs-title">Recent Permits</span></div>
+        ${permitTable(s.recent)}
       </div>`;
     countUpStats_(el);
   }).catch(e=>{
@@ -3115,7 +3244,7 @@ async function renderForm() {
       <div class="ptw-row cols-2">
         <div class="ptw-field">
           <label>Area / Worksite *</label>
-          <input type="text" name="workArea" placeholder="e.g. Tank Farm – T-101, Block B, Boiler Room…">
+          <input type="text" name="workArea" placeholder="e.g. Plant B – Compounding, Packing Hall 1, ETD D5 machine, Boiler…">
         </div>
         <div class="ptw-field">
           <label>Contractor / Job Performer Details</label>
@@ -3205,37 +3334,6 @@ async function renderForm() {
       <div class="ptw-field" style="margin-top:10px">
         <label>Additional Precautions (if any)</label>
         <textarea name="additionalPrecautions" rows="2" placeholder="Any additional safety precautions not listed above…"></textarea>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ SECTION 4: GAS TEST ══ -->
-  <div class="ptw-section" style="border-radius:var(--radius);margin-bottom:12px">
-    <div class="ptw-sec-head" data-on-click="toggleGasSec()" style="cursor:pointer;user-select:none">
-      <div class="ptw-sec-num">4</div>
-      <div class="ptw-sec-title">Gas Test Details</div>
-      <div style="margin-left:auto;display:flex;align-items:center;gap:8px">
-        <span style="font-size:11px;color:var(--slate)">Click to expand if required</span>
-        <span id="gas-sec-arrow" style="font-size:14px;color:var(--slate);transition:transform .2s">▸</span>
-      </div>
-    </div>
-    <div id="gas-sec-body" style="display:none">
-      <div class="ptw-sec-body">
-        <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:var(--radius-sm);margin-bottom:10px">
-          <span style="font-size:18px">🧪</span>
-          <div>
-            <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:2px">Gas Test Details</div>
-            <div style="font-size:11px;color:#15803d;line-height:1.6">Gas readings are recorded on the <strong>permit detail page</strong> once the permit is active using the 🧪 Gas Test button.<br>Safe limits: O₂ 19.5%–23.5% · HC &lt;10% LEL · CO &lt;25ppm · H₂S &lt;10ppm</div>
-          </div>
-        </div>
-        <div class="ptw-gas-preview">
-          <table class="ptw-gas-table">
-            <tr><th style="text-align:left">Parameter / Limit</th>${Array.from({length:7},(_,i)=>`<th>Day ${i+1}</th>`).join('')}</tr>
-            <tr><td>O₂ Level (%) &nbsp;<strong>19.5–23.5</strong></td>${Array(7).fill('<td>—</td>').join('')}</tr>
-            <tr style="background:#f8fafc"><td>HC Level (%) &nbsp;<strong>Below LEL</strong></td>${Array(7).fill('<td>—</td>').join('')}</tr>
-            <tr><td>Toxic Gases (PPM) &nbsp;<strong>Below TLV</strong></td>${Array(7).fill('<td>—</td>').join('')}</tr>
-          </table>
-        </div>
       </div>
     </div>
   </div>
@@ -3377,7 +3475,7 @@ async function renderForm() {
 <!-- ══ SECTION 7: WORK AUTHORIZATION ══ -->
   <div class="ptw-section" style="border-radius:var(--radius);margin-bottom:12px">
     <div class="ptw-sec-head">
-      <div class="ptw-sec-num">7</div>
+      <div class="ptw-sec-num">4</div>
       <div class="ptw-sec-title">Work Authorization</div>
     </div>
     <div class="ptw-sec-body">
@@ -3736,9 +3834,10 @@ function pickOpen(inp, kind) {
   window._pickHits = window._pickHits || {};
   window._pickHits[kind] = hits;
   const box = inp.parentElement.querySelector('.pick-list');
-  box.innerHTML = hits.map((u, i) => '<div class="pick-item" data-on-click="pickChoose(&quot;' + kind + '&quot;,' + i + ')">'
-      + '<strong>' + esc(u.name) + '</strong><span>' + esc(u.designation || u.role || '') + ' · ' + esc(u.department || '') + '</span></div>').join('')
-    + '<div class="pick-item pick-other" data-on-click="pickChoose(&quot;' + kind + '&quot;,&quot;other&quot;)">Other — enter manually…</div>';
+  box.innerHTML = hits.length
+    ? hits.map((u, i) => '<div class="pick-item" data-on-click="pickChoose(&quot;' + kind + '&quot;,' + i + ')">'
+        + '<strong>' + esc(u.name) + '</strong><span>' + esc(u.designation || u.role || '') + ' · ' + esc(u.department || '') + '</span></div>').join('')
+    : '<div class="pick-item pick-empty">No matching people found</div>';
   box.style.display = 'block';
 }
 function pickTyping(inp, kind) {
@@ -3777,6 +3876,20 @@ function pickSyncAll_() {
 document.addEventListener('click', e => {
   document.querySelectorAll('.pick-combo .pick-list').forEach(b => { if (!b.parentElement.contains(e.target)) b.style.display = 'none'; });
 });
+// New permit form: marks sections that have input and shows how many are started
+function updateFormProgress_() {
+  // Marks each section that has input (green badge); no progress bar
+  const pg = document.getElementById('pg-new-permit'); if (!pg) return;
+  pg.querySelectorAll('.ptw-section').forEach(sec => {
+    const typed = [...sec.querySelectorAll('input[type=text],input[type=date],input[type=time],input[type=number],input[type=tel],input[type=email],select,textarea')]
+      .some(f => String(f.value || '').trim() !== '' && f.type !== 'hidden');
+    const picked = [...sec.querySelectorAll('input[type=radio]:checked, input[type=checkbox]:checked')].some(i => !i.defaultChecked);
+    sec.classList.toggle('sec-done', typed || picked);
+  });
+}
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  if (e.target && e.target.closest && e.target.closest('#pg-new-permit')) updateFormProgress_();
+}, true));
 function pickUser(sel, nameField, customId) {
   const opt=sel.options[sel.selectedIndex];
   const custEl=document.getElementById(customId); if(custEl) custEl.style.display=sel.value==='__custom__'?'block':'none';
@@ -4667,7 +4780,10 @@ function buildView(el, p, log, tests, scans, sigs) {
   scans = scans||[]; sigs = sigs||[];
   _currentPermitView = p;                // store for openAddItemsModal
   const _roles=(CU.roles||[CU.role]);
-  const isAcc  = CU.email===p.acceptorEmail  || _roles.includes('Admin') || _roles.includes('Acceptor');
+  const _myDept  = ((_allUsers||[]).find(u => u.email === CU.email) || {}).department || '';
+  const _desDept = ((_allUsers||[]).find(u => u.email === p.acceptorEmail) || {}).department || '';
+  // Designated acceptor, or a substitute from the same department (Admin always)
+  const isAcc  = CU.email===p.acceptorEmail || _roles.includes('Admin') || (_roles.includes('Acceptor') && !!_myDept && _myDept===_desDept);
   const isSaf  = CU.email===p.safetyEmail    || _roles.includes('Admin') || _roles.includes('Safety Officer');
   const isOrig = CU.email===p.originatorEmail|| _roles.includes('Admin');
   const ex=p.extras||{};
@@ -4961,31 +5077,7 @@ function buildView(el, p, log, tests, scans, sigs) {
         ${shiftTbtBlocks}
       </div>
 
-      <!-- Declarations — Section 07 -->
-      <div class="card">
-        <div class="form-section-header"><div class="fs-num">07</div><div class="fs-title">Declarations</div></div>
-        <div style="border:1px solid #e2e8f0;border-radius:var(--radius-sm);overflow:hidden">
-          <div style="padding:12px 14px;border-bottom:1px solid #e2e8f0;background:#f0fdf4;display:flex;gap:10px;align-items:flex-start">
-            <div style="width:18px;height:18px;border-radius:4px;background:var(--green);color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px">✓</div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">Work Authorization — Permit Originator</div>
-              <div style="font-size:12px;color:#475569;line-height:1.6">I have consulted all relevant department / personnel, discussed the scope of work, and inspected the preparatory work and the work area covered by this work permit. Therefore confirm that the work as detailed in "Description of Job" can be carried out.</div>
-              <div style="font-size:11px;color:#64748b;margin-top:4px">Confirmed by ${esc(p.originatorName||'—')}${p.originatorSignTime?' · '+fd(p.originatorSignTime):''}</div>
-            </div>
-          </div>
-          <div style="padding:12px 14px;background:${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'#f0fdf4':'#f8fafc'};display:flex;gap:10px;align-items:flex-start">
-            <div style="width:18px;height:18px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px;${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'background:var(--green);color:#fff':'border:2px solid #cbd5e1;color:transparent'}">✓</div>
-            <div>
-              <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">Work Execution Team — Job Performer Acknowledgement</div>
-              <div style="font-size:12px;color:#475569;line-height:1.6">The successive steps of the work, the potential hazards and the safety precautions have been explained and understood.</div>
-              <div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'✓ Confirmed automatically — Job Performer acknowledged via QR scanner':'Pending — confirmed automatically when Job Performer acknowledges'}</div>
-            </div>
-          </div>
-          <div style="padding:8px 14px;background:#fffbeb;font-size:11px;color:#92400e;border-top:1px solid #fde68a">
-            <em>⚠️ Work scheduled after general duty hours (09:15–17:15 hrs) or change of crew must be endorsed by Duty Officer.</em>
-          </div>
-        </div>
-      </div>
+
 
     <!-- Shift-wise Approval & Activity Record — Section 08 -->
       ${(ex.shifts||[]).length ? `
@@ -5168,6 +5260,32 @@ function buildView(el, p, log, tests, scans, sigs) {
 
 
 
+
+      <!-- Declarations — Section 07 -->
+      <div class="card">
+        <div class="form-section-header"><div class="fs-num">07</div><div class="fs-title">Declarations</div></div>
+        <div style="border:1px solid #e2e8f0;border-radius:var(--radius-sm);overflow:hidden">
+          <div style="padding:12px 14px;border-bottom:1px solid #e2e8f0;background:#f0fdf4;display:flex;gap:10px;align-items:flex-start">
+            <div style="width:18px;height:18px;border-radius:4px;background:var(--green);color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">Work Authorization — Permit Originator</div>
+              <div style="font-size:12px;color:#475569;line-height:1.6">I have consulted all relevant department / personnel, discussed the scope of work, and inspected the preparatory work and the work area covered by this work permit. Therefore confirm that the work as detailed in "Description of Job" can be carried out.</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px">Confirmed by ${esc(p.originatorName||'—')}${p.originatorSignTime?' · '+fd(p.originatorSignTime):''}</div>
+            </div>
+          </div>
+          <div style="padding:12px 14px;background:${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'#f0fdf4':'#f8fafc'};display:flex;gap:10px;align-items:flex-start">
+            <div style="width:18px;height:18px;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-top:1px;${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'background:var(--green);color:#fff':'border:2px solid #cbd5e1;color:transparent'}">✓</div>
+            <div>
+              <div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:3px">Work Execution Team — Job Performer Acknowledgement</div>
+              <div style="font-size:12px;color:#475569;line-height:1.6">The successive steps of the work, the potential hazards and the safety precautions have been explained and understood.</div>
+              <div style="font-size:11px;color:#64748b;margin-top:4px;font-style:italic">${(ex.shifts||[]).some(s=>(s.workerAckCount||0)>0)?'✓ Confirmed automatically — Job Performer acknowledged via QR scanner':'Pending — confirmed automatically when Job Performer acknowledges'}</div>
+            </div>
+          </div>
+          <div style="padding:8px 14px;background:#fffbeb;font-size:11px;color:#92400e;border-top:1px solid #fde68a">
+            <em>⚠️ Work scheduled after general duty hours (09:15–17:15 hrs) or change of crew must be endorsed by Duty Officer.</em>
+          </div>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -5915,13 +6033,39 @@ function closeInductionModal() {
   document.getElementById('induction-modal').classList.remove('open');
 }
 
+// Induction records, loaded in the background so the worker search opens at once (refreshed every 5 minutes)
+window._indCache = null; window._indCacheAt = 0; window._indLoading = null;
+async function loadInductionCache_(force) {
+  const fresh = window._indCache && (Date.now() - window._indCacheAt < 5 * 60 * 1000);
+  if (!force && fresh) return window._indCache;
+  if (window._indLoading) return window._indLoading;
+  window._indLoading = api('searchInduction', { search: '' })
+    .then(records => {
+      const recs = Array.isArray(records) ? records : (records?.results || []);
+      window._indCache = recs; window._indCacheAt = Date.now();
+      return recs;
+    })
+    .catch(() => window._indCache || [])
+    .finally(() => { window._indLoading = null; });
+  return window._indLoading;
+}
+// Filter the loaded induction list by name or certificate number (same fields the server searches)
+function filterInductions_(list, q) {
+  const s = String(q || '').trim().toLowerCase();
+  const all = list || [];
+  const hits = s ? all.filter(r => [r.name, r.certNo, r.company].some(x => String(x || '').toLowerCase().includes(s))) : all;
+  return hits.slice(0, 150);
+}
 async function searchInductees(q) {
   const el = document.getElementById('ind-results');
   if (!el) return;
   el.innerHTML = '<div style="padding:12px;text-align:center;color:var(--slate)"><div class="spinner" style="margin:0 auto;width:22px;height:22px;border-width:3px"></div></div>';
   try {
-    const records = await api('searchInduction', { search: q || '' });
-    const recs = Array.isArray(records) ? records : (records?.results||[]);
+    // Use the induction list already loaded in the background; search it on this device
+    let recs;
+    if (window._indCache) recs = filterInductions_(window._indCache, q);
+    else { recs = filterInductions_(await loadInductionCache_(true), q); }
+    loadInductionCache_(false);   // refresh in the background when the list is older than 5 minutes
     if (!recs.length) {
       el.innerHTML = `<div style="padding:20px;text-align:center">
         <div style="font-size:32px;margin-bottom:8px">🔍</div>
