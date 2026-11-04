@@ -1345,7 +1345,7 @@ tbody tr:last-child td { border-bottom:none; }
     <div class="sb-nav">
       <div class="nav-section">Navigation</div>
       <button class="nav-item active" id="nav-dashboard"   data-on-click="nav('dashboard')">   <span class="ni-icon">◈</span> Dashboard</button>
-      <button class="nav-item"        id="nav-new-permit"  data-on-click="nav('new-permit')">  <span class="ni-icon">＋</span> New Permit</button>
+      <button class="nav-item"        id="nav-new-permit"  data-on-click="openNewPermit()">  <span class="ni-icon">＋</span> New Permit</button>
       <button class="nav-item"        id="nav-my-permits"  data-on-click="nav('my-permits')">  <span class="ni-icon">◻</span> My Permits</button>
       <button class="nav-item"        id="nav-drafts"     data-on-click="nav('drafts')">     <span class="ni-icon">💾</span> Drafts</button>
       <button class="nav-item"        id="nav-all-permits" data-on-click="nav('all-permits')"> <span class="ni-icon">▦</span> All Permits</button>
@@ -2246,6 +2246,7 @@ function logout() {
 }
 
 function launchApp() {
+  setTimeout(() => refreshPermitLimit_(), 300);   // permit limit count, used by New Permit
   setTimeout(() => loadInductionCache_(false), 300);   // induction list loads in the background
   setTimeout(handlePrintHash, 400);   // a print link from the scanner prints as soon as the app is open
   const appEl=document.getElementById('app'); if(appEl) appEl.style.display='flex';
@@ -2696,7 +2697,7 @@ function loadDashboard() {
           <div class="dash-hero-sub">HLL Lifecare Ltd. · Permit to Work overview · ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'2-digit',month:'long',year:'numeric'})}</div>
         </div>
         <div class="dash-hero-actions">
-          ${canCreate?`<button class="btn dash-hero-btn" data-on-click="nav('new-permit')">➕ New Permit</button>`:''}
+          ${canCreate?`<button class="btn dash-hero-btn" data-on-click="openNewPermit()">➕ New Permit</button>`:''}
           ${CU.role==='Admin'?`<button class="btn dash-hero-btn ghost" data-on-click="openModal(&quot;bc-modal&quot;)">📢 Broadcast</button>`:''}
         </div>
       </div>
@@ -3890,6 +3891,23 @@ function updateFormProgress_() {
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (e.target && e.target.closest && e.target.closest('#pg-new-permit')) updateFormProgress_();
 }, true));
+// Permit limit (permits pending closure per originator): checked when New Permit is pressed
+window._permitLimit = null;
+function permitLimitMsg_(l) {
+  return 'You already have ' + l.pendingClosure + ' permit(s) pending closure (limit ' + l.max + '). Close them before creating a new permit.';
+}
+async function refreshPermitLimit_() {
+  try { window._permitLimit = await api('getPermitLimitStatus', {}); } catch (e) {}
+  return window._permitLimit;
+}
+function openNewPermit() {
+  const l = window._permitLimit;
+  if (l && l.pendingClosure >= l.max) { toast(permitLimitMsg_(l), 'err'); nav('my-permits'); return; }
+  nav('new-permit');   // open at once; the count is checked again in the background
+  refreshPermitLimit_().then(fresh => {
+    if (fresh && fresh.pendingClosure >= fresh.max) { toast(permitLimitMsg_(fresh), 'err'); nav('my-permits'); }
+  });
+}
 function pickUser(sel, nameField, customId) {
   const opt=sel.options[sel.selectedIndex];
   const custEl=document.getElementById(customId); if(custEl) custEl.style.display=sel.value==='__custom__'?'block':'none';
