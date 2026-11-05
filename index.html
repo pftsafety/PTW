@@ -1119,10 +1119,10 @@ tbody tr:last-child td { border-bottom:none; }
 
         <div class="lg-divider">or</div>
 
-        <a class="lg-secondary" href="./scanner.html" target="_blank" rel="noopener">
+        <button type="button" class="lg-secondary" data-on-click="openScannerInfo()">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM17 17h4v4h-4z"/></svg>
           Job Performer scanner
-        </a>
+        </button>
 
         <div class="lg-help"><button type="button" class="lg-link" data-on-click="showForgot()">Forgot password?</button><div style="margin-top:6px"><a href="user-manual.html" target="_blank" rel="noopener" class="lg-link" style="text-decoration:none">📖 User manual</a></div><div style="margin-top:6px;font-size:11.5px">Need help? Contact the Safety &amp; Environment Dept.</div></div>
       </div>
@@ -6158,6 +6158,65 @@ function openScannerPage(permitNo) {
 }
 
 function openWorkerScanner() { openScannerPage(''); }
+// Job Performer scanner: QR code and install steps, opened from the login page
+function openScannerInfo() {
+  const url = new URL('scanner.html', window.location.href).href;
+  let m = document.getElementById('scanner-info');
+  if (!m) {
+    m = document.createElement('div');
+    m.id = 'scanner-info';
+    m.className = 'modal-bg';
+    m.style.zIndex = 3000;
+    m.innerHTML = '<div class="modal-box" style="max-width:460px;text-align:left">'
+      + '<div class="modal-title">📱 Job Performer scanner</div>'
+      + '<div style="font-size:12.5px;color:var(--slate);margin-top:4px">Scan this QR code with a phone to open the scanner, or install it on the phone.</div>'
+      + '<div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-top:14px">'
+      +   '<div id="si-qr" style="width:180px;min-height:180px;background:#fff;border:1px solid var(--border);border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center"></div>'
+      +   '<div style="flex:1;min-width:200px">'
+      +     '<div style="font-size:11.5px;color:var(--slate);font-weight:700;text-transform:uppercase;letter-spacing:.4px">Scanner link</div>'
+      +     '<div data-si-url style="font-size:12px;word-break:break-all;margin:4px 0 8px;color:var(--navy)"></div>'
+      +     '<div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn btn-ghost btn-sm" data-on-click="copyScannerLink()">📋 Copy link</button>'
+      +     '<a data-si-open class="btn btn-primary btn-sm" href="#" target="_blank" rel="noopener" style="text-decoration:none">Open scanner</a></div>'
+      +   '</div>'
+      + '</div>'
+      + '<div style="margin-top:18px;font-size:13px;color:var(--navy)">'
+      +   '<div style="font-weight:800;margin-bottom:6px">🤖 Android (Chrome)</div>'
+      +   '<ol style="margin:0 0 12px 18px;padding:0;line-height:1.6;color:var(--navy-mid)"><li>Scan the QR code, or open the link in Chrome.</li><li>Tap the ⋮ menu at the top right.</li><li>Tap <b>Install app</b> or <b>Add to Home screen</b>.</li><li>Open <b>PTW Scanner</b> from the home screen.</li></ol>'
+      +   '<div style="font-weight:800;margin-bottom:6px">🍎 iPhone (Safari)</div>'
+      +   '<ol style="margin:0 0 4px 18px;padding:0;line-height:1.6;color:var(--navy-mid)"><li>Scan the QR code, or open the link in <b>Safari</b> (not another browser).</li><li>Tap the <b>Share</b> button at the bottom.</li><li>Tap <b>Add to Home Screen</b>, then <b>Add</b>.</li><li>Open <b>PTW Scanner</b> from the home screen.</li></ol>'
+      + '</div>'
+      + '<div style="display:flex;justify-content:flex-end;margin-top:14px"><button type="button" class="btn btn-ghost" data-on-click="closeScannerInfo()">Close</button></div>'
+      + '</div>';
+    document.body.appendChild(m);
+  }
+  m.querySelector('[data-si-url]').textContent = url;
+  m.querySelector('[data-si-open]').href = url;
+  m.dataset.url = url;
+  m.classList.add('open');
+  renderScannerQR_(url, m.querySelector('#si-qr'));
+}
+function closeScannerInfo() { document.getElementById('scanner-info')?.classList.remove('open'); }
+function copyScannerLink() {
+  const url = document.getElementById('scanner-info')?.dataset.url || '';
+  if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast('Scanner link copied', 'ok'), () => toast('Could not copy the link', 'warn'));
+}
+function renderScannerQR_(url, box) {
+  box.innerHTML = '';
+  const draw = () => {
+    if (window.QRCode) { new QRCode(box, { text: url, width: 160, height: 160, correctLevel: QRCode.CorrectLevel.M }); return; }
+    const img = document.createElement('img');
+    img.alt = 'QR code for the scanner link'; img.width = 160; img.height = 160;
+    img.src = 'https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=' + encodeURIComponent(url);
+    box.innerHTML = ''; box.appendChild(img);
+  };
+  if (window.QRCode) return draw();
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  s.onload = draw;
+  s.onerror = draw;
+  document.head.appendChild(s);
+}
+
   // Hide all screens
 // ── Scanner is now a standalone page (Scanner.html) ─────────
 // openScannerPage() opens ?page=scanner in a new tab.
