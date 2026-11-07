@@ -319,6 +319,31 @@ body::before{
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* ══ Stage 4 — scanner (phone): modern clean surfaces ══ */
+.card { border-radius:18px; border:1px solid rgba(255,255,255,.08); box-shadow:0 10px 30px rgba(0,0,0,.25); }
+.card-header { border-bottom:1px solid rgba(15,23,42,.06); }
+.btn { border-radius:14px; font-weight:700; letter-spacing:.2px; transition:transform .12s ease, box-shadow .2s ease, background-color .15s ease; }
+.btn:active { transform:scale(.97); }
+.back-btn { border-radius:10px; }
+.step-badge { border-radius:999px; }
+.err-box { border-radius:12px; }
+.info-row { border-bottom:1px solid rgba(15,23,42,.06); }
+.hdr { box-shadow:0 1px 0 rgba(255,255,255,.06), 0 8px 20px rgba(0,0,0,.20); }
+
+/* ══════════════════════════════════════════════════════════════
+   PHASE E — SCANNER: full screen on phones, large targets, clear states
+   ══════════════════════════════════════════════════════════════ */
+html, body { min-height:100dvh; }
+body { padding-bottom:env(safe-area-inset-bottom); }
+.back-btn { min-height:44px; min-width:44px; display:inline-flex; align-items:center; justify-content:center; }
+.action-chip { min-height:48px; display:inline-flex; align-items:center; justify-content:center; font-size:14px; }
+input, select, textarea { min-height:52px; font-size:16px; }
+.btn { min-height:52px; font-size:16px; font-weight:700; display:inline-flex; align-items:center; justify-content:center; }
+.err-box { display:flex; gap:10px; align-items:flex-start; padding:14px 16px; border-left:4px solid #ef4444; font-size:14px; font-weight:600; line-height:1.45; }
+.err-box::before { content:'⚠'; font-size:16px; line-height:1.2; }
+div[style*="z-index:9999"] { animation:scanOkIn .25s ease both; }
+@keyframes scanOkIn { from { opacity:0; transform:scale(.98); } to { opacity:1; transform:none; } }
 </style>
 </head>
 <body>
