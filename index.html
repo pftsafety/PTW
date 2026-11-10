@@ -2246,10 +2246,18 @@ function logout() {
   focusEl('l-email');
 }
 
+// Preload the My Permits, Drafts and Substitute Approval tabs after sign-in, so they open at once
+function preloadTabs_() {
+  const tabs = [() => loadList('my'), () => loadDraftsPage(), () => loadSubApprovalPage()];
+  tabs.forEach((load, i) => setTimeout(() => {
+    try { const r = load(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* one tab failing must not affect the others */ }
+  }, 1200 + i * 500));
+}
 function launchApp() {
   setTimeout(() => refreshPermitLimit_(), 300);   // permit limit count, used by New Permit
   setTimeout(() => loadInductionCache_(false), 300);   // induction list loads in the background
   setTimeout(handlePrintHash, 400);   // a print link from the scanner prints as soon as the app is open
+  preloadTabs_();                     // My Permits, Drafts and Substitute Approval load in the background
   const appEl=document.getElementById('app'); if(appEl) appEl.style.display='flex';
   ['login-screen','forgot-screen','setup-screen'].forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
   const sbName=document.getElementById('sb-name'); if(sbName) sbName.textContent=CU.name;
