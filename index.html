@@ -2401,6 +2401,18 @@ async function autoSaveDraft_() {
   } catch (e) { /* stay quiet; the next minute tries again */ }
 }
 setInterval(autoSaveDraft_, 60000);
+// Phone bottom bar: added only on narrow screens, so it never appears on desktop
+const BOTTOM_NAV_HTML_ = '<nav id="bottom-nav" aria-label="Main">\n  <button class="bn-item" data-on-click="nav(\'dashboard\')"><span class="bn-ic">◈</span><span>Home</span></button>\n  <button class="bn-item" data-on-click="openNewPermit()"><span class="bn-ic">＋</span><span>New</span></button>\n  <button class="bn-item" data-on-click="nav(\'my-permits\')"><span class="bn-ic">◻</span><span>Mine</span></button>\n  <button class="bn-item" data-on-click="nav(\'drafts\')"><span class="bn-ic">💾</span><span>Drafts</span></button>\n  <button class="bn-item" data-on-click="toggleSidebar()"><span class="bn-ic">☰</span><span>More</span></button>\n</nav>';
+function syncBottomNav_() {
+  if (!document.body) return;
+  const small = window.matchMedia('(max-width:900px)').matches;
+  const el = document.getElementById('bottom-nav');
+  if (small && !el) document.body.insertAdjacentHTML('beforeend', BOTTOM_NAV_HTML_);
+  if (!small && el) el.remove();
+}
+syncBottomNav_();
+document.addEventListener('DOMContentLoaded', syncBottomNav_);
+window.matchMedia('(max-width:900px)').addEventListener('change', syncBottomNav_);
 function crumbFor_(page) {
   if (page === 'dashboard') return 'Overview';
   if (page === 'users' || page === 'settings') return 'Administration';
@@ -8351,13 +8363,5 @@ if ('serviceWorker' in navigator) {
   });
 })();
 </script>
-
-<nav id="bottom-nav" aria-label="Main">
-  <button class="bn-item" data-on-click="nav('dashboard')"><span class="bn-ic">◈</span><span>Home</span></button>
-  <button class="bn-item" data-on-click="openNewPermit()"><span class="bn-ic">＋</span><span>New</span></button>
-  <button class="bn-item" data-on-click="nav('my-permits')"><span class="bn-ic">◻</span><span>Mine</span></button>
-  <button class="bn-item" data-on-click="nav('drafts')"><span class="bn-ic">💾</span><span>Drafts</span></button>
-  <button class="bn-item" data-on-click="toggleSidebar()"><span class="bn-ic">☰</span><span>More</span></button>
-</nav>
 </body>
 </html>
