@@ -4419,14 +4419,14 @@ function openAddItemsModal(permitNo, type) {
 async function saveAddedItems() {
   const checked = Array.from(document.querySelectorAll('.aim-cb:checked')).map(cb=>cb.value);
   if (!checked.length) { toast('Select at least one item','warn'); return; }
-  load(true);
+  const no = _addItemsPermitNo, type = _addItemsType;
+  // Close and confirm straight away; the save and the refresh happen in the background (no spinner)
+  document.getElementById('add-items-modal').classList.remove('open');
+  toast(checked.length + ' item(s) added ✅','ok');
   try {
-    await api('addPermitItems', { permitNo:_addItemsPermitNo, type:_addItemsType, items:checked });
-    load(false);
-    document.getElementById('add-items-modal').classList.remove('open');
-    toast(checked.length + ' item(s) added ✅','ok');
-    loadView(_addItemsPermitNo);
-  } catch(e) { load(false); toast(e.message,'err'); }
+    await api('addPermitItems', { permitNo:no, type, items:checked });
+    loadView(no);
+  } catch(e) { toast(e.message,'err'); loadView(no); }
 }
 
 // ── Edit Permit (Originator, status = Pending Acceptor) ─────────────
@@ -4624,7 +4624,7 @@ function showSubmitOverlay_() {
   if (document.getElementById('submit-overlay')) return;
   const o = document.createElement('div');
   o.id = 'submit-overlay';
-  o.style.cssText = 'position:fixed;inset:0;z-index:4000;background:rgba(248,250,252,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:600;color:var(--navy)';
+  o.style.cssText = 'position:fixed;inset:0;z-index:2500;background:rgba(248,250,252,.97);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;font-size:14px;font-weight:600;color:var(--navy)';
   o.innerHTML = '<style>@keyframes ptwSpin{to{transform:rotate(360deg)}}</style>'
     + '<div style="width:28px;height:28px;border-radius:50%;border:3px solid #cbd5e1;border-top-color:var(--navy);animation:ptwSpin .8s linear infinite"></div>'
     + '<div>Creating permit… please wait</div>';
@@ -4764,10 +4764,10 @@ async function submitForm(e) {
         }
       } catch(e) {}
 
+      showSubmitOverlay_();   // covers the form straight after signing (below any warning dialog)
       // Warn if a listed worker is already on another permit in progress (checked once signed)
       const _certs = _workEntries.flatMap(en => (en.workers || []).map(w => w.certNo));
-      if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) return;
-      showSubmitOverlay_();   // hides the form while the permit is saved
+      if (!(await warnWorkerConflicts(_certs, document.getElementById('ptw-form')?.dataset?.editingPermitNo || ''))) { hideSubmitOverlay_(); return; }
       load(true);
       const editingNo = document.getElementById('ptw-form')?.dataset?.editingPermitNo;
   if (editingNo) payload.permitNo = editingNo;
@@ -4821,10 +4821,11 @@ async function submitForm(e) {
 // re-renders if it actually stopped a shift.
 function loadView(permitNo) {
   const el=document.getElementById('pg-view-permit');
-  el.innerHTML='<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
+  if (el.dataset.permit !== permitNo) el.innerHTML='<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
   api('getPermitView',{permitNo}).then(v=>{
     if(!v||!v.permit){ el.innerHTML='<div class="card">Permit not found.</div>'; return; }
     buildView(el, v.permit, v.log||[], v.tests||[], v.scans||[], v.sigs||[]);
+    el.dataset.permit = permitNo;
     el.querySelectorAll('.layout-split > div > .card').forEach((cd, i) => { cd.style.animationDelay = (Math.min(i, 8) * 60) + 'ms'; cd.classList.add('card-in'); });
     try {
       const snap = JSON.stringify(((v.permit.extras||{}).shifts||[]).map(s => [!!s.originatorSignTime, !!s.acceptorSignTime, !!s.safetySignTime, !!s.dutyOfficerSignTime, !!s.jobStartTime, !!s.jobStopTime, s.shiftStatus]));
@@ -7218,6 +7219,12 @@ body { background:var(--canvas); font-size:14.5px; }
 #bottom-nav { display:none !important; }
 @media (max-width:900px) { #bottom-nav { display:flex !important; } }
 
+
+/* Section headings: a lighter, calmer weight (overrides the heavier rules above) */
+.fs-title, #pg-view-permit .fs-title, #pg-new-permit .ptw-sec-title, #pg-view-permit .form-section-header .fs-title {
+  font-weight:600 !important; font-size:13px !important; letter-spacing:.5px !important; text-transform:uppercase !important; color:var(--ink-2) !important;
+}
+.form-section-header { padding-bottom:10px !important; }
 </style>
 </head>
 <body>
