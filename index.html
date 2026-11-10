@@ -2369,10 +2369,38 @@ function updateFormSummary_() {
   bar.innerHTML = items.length
     ? items.map(([k, v]) => '<div class="fsum-item"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('')
     : '<div class="fsum-empty">The permit summary appears here as you fill in the form.</div>';
+  bar.insertAdjacentHTML('beforeend', '<div class="fsum-save" id="fsum-save"></div>');
+  updateAutoSaveNote_();
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (e.target && e.target.closest && e.target.closest('#pg-new-permit')) updateFormSummary_();
 }, true));
+// Autosave: while a new permit is being filled in, save it as a draft every minute (silently)
+window._formDirty = false; window._lastAutoSave = null;
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
+  if (e.target && e.target.closest && e.target.closest('#pg-new-permit')) window._formDirty = true;
+}, true));
+function updateAutoSaveNote_() {
+  const n = document.getElementById('fsum-save'); if (!n) return;
+  n.textContent = window._lastAutoSave
+    ? 'Draft saved ' + window._lastAutoSave.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })
+    : 'Draft not saved yet';
+}
+async function autoSaveDraft_() {
+  const pg = document.getElementById('pg-new-permit');
+  if (!pg || !pg.classList.contains('active') || !window._formDirty || window._createInFlight) return;
+  const form = pg.querySelector('form');
+  if (!form || form.dataset.editingPermitNo) return;          // never autosave while editing an existing permit
+  const fields = collectDraftFields(form);
+  const title = (fields.jobDescription || '').toString().trim().slice(0, 60);
+  if (!title && !(_workEntries || []).length) return;        // nothing worth saving yet
+  try {
+    const r = await api('saveDraft', { draftId: window._draftId || '', title: title || 'Untitled draft', fields, workEntries: _workEntries });
+    window._draftId = r.draftId; window._formDirty = false; window._lastAutoSave = new Date();
+    updateAutoSaveNote_();
+  } catch (e) { /* stay quiet; the next minute tries again */ }
+}
+setInterval(autoSaveDraft_, 60000);
 function crumbFor_(page) {
   if (page === 'dashboard') return 'Overview';
   if (page === 'users' || page === 'settings') return 'Administration';
@@ -4390,6 +4418,19 @@ async function saveAddedItems() {
 }
 
 // ── Edit Permit (Originator, status = Pending Acceptor) ─────────────
+// Copy a closed or cancelled permit into a new permit form (dates, work entries and uploads are not copied)
+async function duplicatePermit(no) {
+  const l = window._permitLimit;
+  if (l && l.pendingClosure >= l.max) { toast(permitLimitMsg_(l), 'err'); nav('my-permits'); return; }
+  load(true);
+  let p = null;
+  try { p = await api('getPermitByNo', { permitNo: no }); } catch (e) { load(false); toast(e.message, 'err'); return; }
+  load(false);
+  if (!p) { toast('Permit not found', 'err'); return; }
+  window._duplicateMode = true;
+  renderEditForm(p);
+  nav('new-permit');
+}
 function openEditPermit(permitNo) {
   // Navigate to edit form pre-populated with permit data
   load(true);
@@ -4453,12 +4494,19 @@ function renderEditForm(p) {
     _workEntries = JSON.parse(JSON.stringify(ex.workEntries||[]));
     renderEntriesList();
     pickSyncAll_();
+    // Duplicate mode: the copy is a new permit, so clear the dates, work entries and the old upload
+    if (window._duplicateMode) {
+      frm.querySelectorAll('[name=validFrom],[name=validTo]').forEach(el => { el.value = ''; });
+      _workEntries = []; if (typeof renderEntriesList === 'function') renderEntriesList();
+      window._editUploads = null;
+    }
     // Store original permit no for update
-    frm.dataset.editingPermitNo = p.permitNo;
+    frm.dataset.editingPermitNo = window._duplicateMode ? '' : p.permitNo;
     // Change submit button text
     const btn=document.querySelector('#ptw-form button[data-on-click="submitForm(event)"]');
-    if(btn) btn.textContent='✔ Update Permit';
-    toast('Editing permit '+p.permitNo+' — make changes and re-submit','warn');
+    if(btn) btn.textContent = window._duplicateMode ? 'Submit Permit' : '✔ Update Permit';
+    if (window._duplicateMode) { toast('Copy of ' + p.permitNo + ' ready — enter the new dates and work entries', 'info'); window._duplicateMode = false; }
+    else toast('Editing permit '+p.permitNo+' — make changes and re-submit','warn');
   }, 500);
 }
 
@@ -4947,6 +4995,9 @@ function buildView(el, p, log, tests, scans, sigs) {
   // Originator can edit before Acceptor approves
   // Edit button shown above (strict originator check)
   acts+=`<button class="btn btn-ghost btn-sm" data-on-click="scrollToGas()">🧪 Gas Test Readings (${(tests||[]).length})</button>`;
+  // Duplicate: a closed or cancelled permit can be copied into a new one
+  if (['Closed','Cancelled'].includes(p.status) && (CU.email===p.originatorEmail || _roles.includes('Admin')))
+    acts+=`<button class="btn btn-ghost btn-sm" data-on-click="duplicatePermit(&quot;${p.permitNo}&quot;)">📄 Duplicate</button>`;
   // Admin: repair a permit whose status no longer matches its shifts
   if ((CU.roles||[CU.role]).includes('Admin') && p.status==='Pending Worker Acknowledgement' && (ex.shifts||[]).some(s=>s.shiftStatus==='Completed'||s.shiftStatus==='Active'))
     acts+=`<button class="btn btn-ghost btn-sm" data-on-click="repairStatus(&quot;${p.permitNo}&quot;)">🔧 Repair status</button>`;
@@ -7034,6 +7085,122 @@ table th { font-size:var(--fs-2xs); font-weight:700; text-transform:uppercase; l
 .lg-eye { min-width:44px; min-height:44px; display:flex; align-items:center; justify-content:center; }
 .lg-link, .auth-link { min-height:44px; display:inline-flex; align-items:center; }
 #lerr.auth-alert.err, .auth-alert.err { display:flex; gap:10px; align-items:flex-start; padding:12px 14px; border-radius:12px; background:rgba(239,68,68,.14); border:1px solid rgba(248,113,113,.45); color:#fecaca; font-size:14px; font-weight:600; line-height:1.45; }
+
+/* ══════════════════════════════════════════════════════════════
+   PHASE F — MICRO-INTERACTIONS
+   One motion language: fast for feedback, base for state, slow for entrances.
+   All motion is switched off for users who prefer reduced motion (see the block at the end).
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --dur-fast: .12s;
+  --dur-base: .2s;
+  --dur-slow: .35s;
+  --ease-spring: cubic-bezier(.34,1.56,.64,1);
+}
+[data-on-click].card { cursor:pointer; transition:transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) ease, border-color var(--dur-base) ease; }
+[data-on-click].card:hover { transform:translateY(-1px); box-shadow:var(--elev-2); border-color:#d6e0ee; }
+[data-on-click].card:active { transform:scale(.993); }
+.nav-item { transition:background-color var(--dur-base) ease, color var(--dur-base) ease, transform var(--dur-fast) ease; }
+.nav-item:active { transform:scale(.98); }
+.badge { transition:background-color var(--dur-base) ease, color var(--dur-base) ease; }
+table tbody tr { transition:background-color var(--dur-base) ease; }
+input[type=checkbox], input[type=radio] { accent-color:var(--info); }
+#toast { transform:translateY(12px); opacity:0; transition:transform var(--dur-slow) var(--ease-out), opacity var(--dur-base) ease; }
+#toast.show { transform:translateY(0); opacity:1; }
+button:focus-visible, a:focus-visible, [role=button]:focus-visible, summary:focus-visible { outline:2px solid var(--info); outline-offset:2px; border-radius:6px; }
+.modal-bg { transition:opacity var(--dur-base) ease; }
+#notif-panel.open { animation:slideInRight var(--dur-slow) var(--ease-out) both; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration:.001ms !important; animation-iteration-count:1 !important; transition-duration:.001ms !important; scroll-behavior:auto !important; }
+}
+
+/* Build label: confirms which UI version is running */
+.sb-footer::after { content:'PTW · UI build F · v19'; display:block; margin-top:8px; font-size:10px; letter-spacing:.4px; color:rgba(255,255,255,.35); }
+
+/* ══════════════════════════════════════════════════════════════
+   THEME v2 — a visibly bolder enterprise look (layouts unchanged)
+   ══════════════════════════════════════════════════════════════ */
+:root {
+  --accent: #1d4ed8;
+  --accent-hi: #3b82f6;
+  --accent-soft: #e0ecff;
+  --shell: #0b1220;
+  --canvas: #eef2f8;
+  --bg: #eef2f8;
+}
+body { background:var(--canvas); font-size:14.5px; }
+/* sidebar */
+#sidebar { background:linear-gradient(180deg,#0b1220 0%,#0f1a2e 100%) !important; }
+.nav-item { border-radius:10px; font-weight:600; }
+.nav-item.active { background:var(--accent) !important; color:#fff !important; box-shadow:0 6px 16px rgba(29,78,216,.35) !important; }
+.nav-item.active .ni-icon { color:#fff; }
+.nav-section { color:rgba(255,255,255,.42) !important; font-weight:800; letter-spacing:1.1px; }
+/* top bar */
+#topbar { background:#fff !important; border-bottom:1px solid #dfe6f1 !important; box-shadow:0 2px 10px rgba(15,23,42,.06) !important; }
+.tb-page-title { font-size:20px !important; font-weight:800 !important; letter-spacing:-.4px !important; }
+.tb-crumb { color:var(--accent) !important; }
+/* buttons */
+.btn { height:40px; font-weight:700; }
+.btn-primary { background:var(--accent) !important; color:#fff !important; box-shadow:0 4px 12px rgba(29,78,216,.28) !important; }
+.btn-primary:hover:not(:disabled) { background:#1e40af !important; }
+.btn-ghost { border:1.5px solid #cdd7e6 !important; }
+/* cards: a coloured top edge */
+.card { border-top:3px solid var(--accent) !important; border-radius:14px !important; box-shadow:0 6px 18px rgba(15,23,42,.08) !important; }
+.form-section-header { border-bottom:2px solid #e5ecf5; padding-bottom:12px; margin-bottom:14px; }
+.fs-title { font-size:15px !important; font-weight:800 !important; letter-spacing:-.2px; }
+.fs-num { background:var(--accent) !important; color:#fff !important; box-shadow:0 4px 10px rgba(29,78,216,.30) !important; }
+/* tables: dark header band */
+.tbl-wrap table thead th, #pg-my-permits table thead th, #pg-all-permits table thead th { background:#0b1220 !important; color:#cbd5e1 !important; border-bottom:none !important; font-size:11px !important; letter-spacing:.7px !important; }
+.tbl-wrap table thead th:first-child { border-top-left-radius:12px; }
+.tbl-wrap table thead th:last-child { border-top-right-radius:12px; }
+.tbl-wrap table th.sortable::after { color:#94a3b8; }
+.tbl-wrap table th.sort-asc::after, .tbl-wrap table th.sort-desc::after { color:#60a5fa !important; }
+/* badges and status chips: stronger */
+.badge { font-weight:800 !important; letter-spacing:.2px; box-shadow:inset 0 0 0 1px rgba(15,23,42,.08); }
+/* dashboard tiles: a coloured edge and bigger numbers */
+.dash-kpi { border-left:5px solid currentColor !important; border-radius:14px !important; }
+.dash-kpi-num { font-size:34px !important; font-weight:800 !important; }
+.dash-hero { background:linear-gradient(120deg,#0b1220 0%,#14284b 100%) !important; border-bottom:3px solid var(--accent-hi); }
+.dash-hero-title { font-size:24px !important; }
+/* new permit form: a coloured edge on each section */
+#pg-new-permit .ptw-section { border-left:4px solid var(--accent) !important; }
+#pg-new-permit .ptw-section.sec-done { border-left-color:#16a34a !important; }
+/* permit detail header band */
+#pg-view-permit .ph { background:linear-gradient(120deg,#0b1220 0%,#14284b 100%) !important; border-bottom:3px solid var(--accent-hi); }
+#pg-view-permit .ph-title { font-size:24px !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   GLASS — used on a few floating surfaces only (sign-in card, dashboard banner,
+   summary bar, phone bottom bar, dialog backdrop). Tables, forms and the scanner stay solid.
+   ══════════════════════════════════════════════════════════════ */
+/* sign-in card: frosted over a soft gradient; inputs stay solid for contrast */
+.auth-box { background:rgba(255,255,255,.08) !important; border:1px solid rgba(255,255,255,.16) !important; backdrop-filter:blur(16px) saturate(140%); -webkit-backdrop-filter:blur(16px) saturate(140%); box-shadow:0 30px 60px rgba(2,6,23,.45), inset 0 1px 0 rgba(255,255,255,.12) !important; }
+.auth-box input, .auth-box .lg-input { background:rgba(2,6,23,.55) !important; border-color:rgba(148,163,184,.35) !important; }
+/* dashboard banner: a soft glow inside the dark gradient */
+.dash-hero { position:relative; overflow:hidden; isolation:isolate; }
+.dash-hero::before, .dash-hero::after { content:''; position:absolute; width:320px; height:320px; border-radius:50%; pointer-events:none; z-index:-1; filter:blur(40px); opacity:.45; }
+.dash-hero::before { background:#3b82f6; top:-160px; right:-80px; }
+.dash-hero::after { background:#0ea5e9; bottom:-180px; left:30%; opacity:.25; }
+.dash-hero .btn { backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); }
+/* sticky summary bar on the new permit form */
+#form-summary { background:rgba(255,255,255,.72) !important; backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%); border-color:rgba(255,255,255,.7) !important; }
+/* phone bottom bar */
+#bottom-nav { background:rgba(255,255,255,.72) !important; backdrop-filter:blur(14px) saturate(160%); -webkit-backdrop-filter:blur(14px) saturate(160%); border-top-color:rgba(226,232,240,.8) !important; }
+/* dialog backdrop */
+.modal-bg { background:rgba(15,23,42,.42) !important; backdrop-filter:blur(4px); -webkit-backdrop-filter:blur(4px); }
+/* fallbacks: no blur support, or a request for less transparency */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))) {
+  .auth-box, #form-summary, #bottom-nav { background:#0f172a !important; }
+  #form-summary, #bottom-nav { background:#ffffff !important; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .auth-box { background:#0f172a !important; backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  #form-summary, #bottom-nav, .modal-bg { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+  #form-summary, #bottom-nav { background:#ffffff !important; }
+  .modal-bg { background:rgba(15,23,42,.6) !important; }
+}
+
+.fsum-save { margin-left:auto; font-size:11.5px; font-weight:600; color:var(--ink-3); }
 </style>
 </head>
 <body>
