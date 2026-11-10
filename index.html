@@ -1383,7 +1383,8 @@ tbody tr:last-child td { border-bottom:none; }
       <div class="btn-group">
         <!-- Notification Bell -->
         <div class="notif-wrap">
-          <button class="notif-bell-btn" data-on-click="toggleNotifPanel()" title="Notifications">
+          <button type="button" class="btn btn-ghost btn-sm" id="theme-toggle" data-on-click="toggleTheme()" title="Switch between light and dark" aria-label="Switch theme" style="min-width:40px;font-size:15px">🌙</button>
+        <button class="notif-bell-btn" data-on-click="toggleNotifPanel()" title="Notifications">
             🔔<div id="notif-count">0</div>
           </button>
         </div>
@@ -2401,6 +2402,22 @@ async function autoSaveDraft_() {
   } catch (e) { /* stay quiet; the next minute tries again */ }
 }
 setInterval(autoSaveDraft_, 60000);
+// Theme: light by default; dark is remembered on this device
+function applyTheme_(t) {
+  document.documentElement.setAttribute('data-theme', t === 'dark' ? 'dark' : 'light');
+  const b = document.getElementById('theme-toggle');
+  if (b) { b.textContent = t === 'dark' ? '☀️' : '🌙'; b.title = t === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'; }
+}
+function toggleTheme() {
+  const next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  applyTheme_(next);
+  try { localStorage.setItem('ptw_theme', next); } catch (e) {}
+}
+(function () {
+  let saved = null; try { saved = localStorage.getItem('ptw_theme'); } catch (e) {}
+  applyTheme_(saved);
+  document.addEventListener('DOMContentLoaded', () => applyTheme_(saved));
+})();
 function crumbFor_(page) {
   if (page === 'dashboard') return 'Overview';
   if (page === 'users' || page === 'settings') return 'Administration';
@@ -7205,6 +7222,64 @@ body { background:var(--canvas); font-size:14.5px; }
 /* The phone bottom bar lives outside the app layout; it is shown only on narrow screens */
 #bottom-nav { display:none !important; }
 @media (max-width:900px) { #bottom-nav { display:flex !important; } }
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME — applied when <html data-theme="dark"> (toggle in the top bar)
+   ══════════════════════════════════════════════════════════════ */
+html[data-theme="dark"] {
+  --white: #0f1729; --surface: #0f1729; --canvas: #080d17; --bg: #080d17;
+  --navy: #e6edf7; --ink: #e6edf7; --ink-2: #cbd5e1; --ink-3: #94a3b8; --slate: #94a3b8;
+  --line: #1e293b; --border: #1e293b; --line-strong: #334155;
+  --info-soft: #1e3a8a33; --success-soft: #14532d55; --warning-soft: #78350f55; --danger-soft: #7f1d1d55;
+  color-scheme: dark;
+}
+html[data-theme="dark"] body { background:var(--canvas); color:var(--ink); }
+html[data-theme="dark"] #topbar { background:#0f1729 !important; border-bottom-color:#1e293b !important; box-shadow:0 2px 12px rgba(0,0,0,.35) !important; }
+html[data-theme="dark"] .card { background:#0f1729 !important; border-color:#1e293b !important; box-shadow:0 6px 18px rgba(0,0,0,.35) !important; }
+html[data-theme="dark"] .form-section-header { border-bottom-color:#1e293b !important; }
+html[data-theme="dark"] input[type=text], html[data-theme="dark"] input[type=date], html[data-theme="dark"] input[type=time], html[data-theme="dark"] input[type=number], html[data-theme="dark"] input[type=tel], html[data-theme="dark"] input[type=email], html[data-theme="dark"] input[type=password], html[data-theme="dark"] select, html[data-theme="dark"] textarea, html[data-theme="dark"] .field { background:#0b1220 !important; color:#e6edf7 !important; border-color:#334155 !important; }
+html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color:#64748b; }
+html[data-theme="dark"] .btn-ghost { background:#0f1729 !important; color:#e6edf7 !important; border-color:#334155 !important; }
+html[data-theme="dark"] .btn-ghost:hover:not(:disabled) { background:#162238 !important; border-color:#475569 !important; }
+html[data-theme="dark"] .btn-primary { background:#2563eb !important; color:#fff !important; }
+html[data-theme="dark"] .badge { background:#1e293b; color:#cbd5e1; }
+html[data-theme="dark"] .badge-closed { background:#1e293b; color:#94a3b8; }
+html[data-theme="dark"] .badge-warn { color:#fcd34d; }
+html[data-theme="dark"] .alert-error { color:#fecaca; }
+html[data-theme="dark"] .alert-warn { color:#fde68a; }
+html[data-theme="dark"] .alert-success { color:#bbf7d0; }
+html[data-theme="dark"] .alert-info { color:#bfdbfe; }
+html[data-theme="dark"] .tbl-wrap { background:#0f1729 !important; border-color:#1e293b !important; }
+html[data-theme="dark"] table td { color:#e6edf7; border-color:#1e293b; }
+html[data-theme="dark"] table tbody tr:hover td { background:#162238 !important; }
+html[data-theme="dark"] .modal-box { background:#0f1729 !important; border:1px solid #1e293b; }
+html[data-theme="dark"] .modal-title { color:#e6edf7; }
+html[data-theme="dark"] #toast { background:#e6edf7; color:#0f1729; }
+html[data-theme="dark"] .dash-kpi { background:#0f1729 !important; border-color:#1e293b !important; }
+html[data-theme="dark"] .dash-kpi-ic { background:#162238 !important; }
+html[data-theme="dark"] .dash-kpi-bar { background:#1e293b !important; }
+html[data-theme="dark"] .dash-leg { color:#e6edf7; border-bottom-color:#1e293b; }
+html[data-theme="dark"] .dash-alert { background:#3b0d0d !important; border-color:#7f1d1d !important; color:#fecaca !important; }
+html[data-theme="dark"] #form-summary { background:rgba(15,23,41,.9) !important; border-color:#1e293b !important; }
+html[data-theme="dark"] .fsum-item span { color:#94a3b8; }
+html[data-theme="dark"] .fsum-item b { color:#e6edf7; }
+html[data-theme="dark"] #pg-new-permit .ptw-section { background:#0f1729 !important; border-color:#1e293b !important; }
+html[data-theme="dark"] #pg-new-permit .ptw-check-item, html[data-theme="dark"] #pg-new-permit .ptw-type-btn, html[data-theme="dark"] #pg-new-permit .sup-yn-lbl, html[data-theme="dark"] #pg-new-permit .ptw-sup-item { background:#0b1220 !important; border-color:#334155 !important; color:#e6edf7 !important; }
+html[data-theme="dark"] #pg-new-permit .ptw-check-item:has(input:checked) { background:#0f2a1c !important; border-color:#16a34a !important; color:#bbf7d0 !important; }
+html[data-theme="dark"] #pg-new-permit .ptw-type-btn:has(input:checked) { background:#132445 !important; border-color:#3b82f6 !important; color:#bfdbfe !important; }
+html[data-theme="dark"] .pick-list { background:#0f1729 !important; border-color:#1e293b !important; }
+html[data-theme="dark"] .pick-item { color:#e6edf7; border-bottom-color:#1e293b; }
+html[data-theme="dark"] .pick-item:hover { background:#162238 !important; }
+html[data-theme="dark"] #bottom-nav { background:rgba(15,23,41,.92) !important; border-top-color:#1e293b !important; }
+html[data-theme="dark"] .bn-item { color:#94a3b8; }
+html[data-theme="dark"] .bn-item:hover { background:#162238; color:#e6edf7; }
+html[data-theme="dark"] .empty-state { color:#94a3b8; }
+html[data-theme="dark"] .empty-state .es-icon { background:#162238; }
+html[data-theme="dark"] .skel { background:linear-gradient(90deg,#1e293b 25%,#273449 37%,#1e293b 63%); background-size:400% 100%; }
+html[data-theme="dark"] .fs-title { color:#e6edf7 !important; }
+html[data-theme="dark"] .tb-page-title { color:#e6edf7 !important; }
+html[data-theme="dark"] .field-label { color:#94a3b8; }
+html[data-theme="dark"] details > summary { background:#0f1729 !important; border-color:#1e293b !important; color:#e6edf7 !important; }
 </style>
 </head>
 <body>
