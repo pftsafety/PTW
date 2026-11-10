@@ -4931,7 +4931,9 @@ function buildView(el, p, log, tests, scans, sigs) {
   const _desDept = ((_allUsers||[]).find(u => u.email === p.acceptorEmail) || {}).department || '';
   // Designated acceptor, or a substitute from the same department (Admin always)
   const isAcc  = CU.email===p.acceptorEmail || _roles.includes('Admin') || (_roles.includes('Acceptor') && !!_myDept && _myDept===_desDept);
-  const isSaf  = CU.email===p.safetyEmail    || _roles.includes('Admin') || _roles.includes('Safety Officer');
+  const _desSafDept = ((_allUsers||[]).find(u => u.email === p.safetyEmail) || {}).department || '';
+  // Designated Safety In-Charge, or a Safety officer from the same department (Admin always)
+  const isSaf = CU.email===p.safetyEmail || _roles.includes('Admin') || (_roles.some(r => r === 'Safety' || r === 'Safety Officer') && !!_myDept && _myDept===_desSafDept);
   const isOrig = CU.email===p.originatorEmail|| _roles.includes('Admin');
   const ex=p.extras||{};
 
