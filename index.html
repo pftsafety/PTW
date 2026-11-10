@@ -1373,14 +1373,6 @@ tbody tr:last-child td { border-bottom:none; }
       </div>
     </div>
   </nav>
-
-<nav id="bottom-nav" aria-label="Main">
-  <button class="bn-item" data-on-click="nav('dashboard')"><span class="bn-ic">◈</span><span>Home</span></button>
-  <button class="bn-item" data-on-click="openNewPermit()"><span class="bn-ic">＋</span><span>New</span></button>
-  <button class="bn-item" data-on-click="nav('my-permits')"><span class="bn-ic">◻</span><span>Mine</span></button>
-  <button class="bn-item" data-on-click="nav('drafts')"><span class="bn-ic">💾</span><span>Drafts</span></button>
-  <button class="bn-item" data-on-click="toggleSidebar()"><span class="bn-ic">☰</span><span>More</span></button>
-</nav>
   <!-- MAIN -->
   <div id="main">
     <div id="topbar">
@@ -7201,6 +7193,10 @@ body { background:var(--canvas); font-size:14.5px; }
 }
 
 .fsum-save { margin-left:auto; font-size:11.5px; font-weight:600; color:var(--ink-3); }
+
+/* The phone bottom bar lives outside the app layout; it is shown only on narrow screens */
+#bottom-nav { display:none !important; }
+@media (max-width:900px) { #bottom-nav { display:flex !important; } }
 </style>
 </head>
 <body>
@@ -8346,5 +8342,13 @@ if ('serviceWorker' in navigator) {
   });
 })();
 </script>
+
+<nav id="bottom-nav" aria-label="Main">
+  <button class="bn-item" data-on-click="nav('dashboard')"><span class="bn-ic">◈</span><span>Home</span></button>
+  <button class="bn-item" data-on-click="openNewPermit()"><span class="bn-ic">＋</span><span>New</span></button>
+  <button class="bn-item" data-on-click="nav('my-permits')"><span class="bn-ic">◻</span><span>Mine</span></button>
+  <button class="bn-item" data-on-click="nav('drafts')"><span class="bn-ic">💾</span><span>Drafts</span></button>
+  <button class="bn-item" data-on-click="toggleSidebar()"><span class="bn-ic">☰</span><span>More</span></button>
+</nav>
 </body>
 </html>
