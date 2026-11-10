@@ -1383,7 +1383,7 @@ tbody tr:last-child td { border-bottom:none; }
       <div class="btn-group">
         <!-- Notification Bell -->
         <div class="notif-wrap">
-          <button type="button" class="btn btn-ghost btn-sm" id="theme-toggle" data-on-click="toggleTheme()" title="Switch between light and dark" aria-label="Switch theme" style="min-width:40px;font-size:15px">🌙</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="theme-toggle" title="Switch between light and dark" aria-label="Switch theme" style="min-width:40px;font-size:15px">🌙</button>
         <button class="notif-bell-btn" data-on-click="toggleNotifPanel()" title="Notifications">
             🔔<div id="notif-count">0</div>
           </button>
@@ -2417,6 +2417,10 @@ function toggleTheme() {
   let saved = null; try { saved = localStorage.getItem('ptw_theme'); } catch (e) {}
   applyTheme_(saved);
   document.addEventListener('DOMContentLoaded', () => applyTheme_(saved));
+  // One dedicated listener for the toggle button (no inline handler, so it can only fire once per click)
+  document.addEventListener('click', e => {
+    if (e.target && e.target.closest && e.target.closest('#theme-toggle')) { e.preventDefault(); toggleTheme(); }
+  });
 })();
 function crumbFor_(page) {
   if (page === 'dashboard') return 'Overview';
