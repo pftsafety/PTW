@@ -2866,14 +2866,18 @@ function openTile(t) {
 }
 // Safety view of "active": in force AND work under way or started today (matches the server)
 function isWorkActiveToday(p) {
+  // Same rule as the server: initiated today by the originator, and work has started
   if (p.status !== 'Active') return false;
-  const d = new Date();
-  const today = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const ymd = x => { const d = new Date(x); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  const today = ymd(new Date());
+  const initiated = p.createdAt || p.originatorSignTime;
+  if (!initiated || ymd(initiated) !== today) return false;
   const ex = p.extras || {};
   return (ex.shifts || []).some((s, i) => {
+    if (!s.jobStartTime) return false;
+    if (!s.jobStopTime) return true;
     const date = s.date || (i === 0 ? ((ex.workEntries || [])[0] || {}).date : '');
-    if (s.shiftStatus === 'Active') return true;
-    return date === today && !!s.jobStartTime;
+    return date === today;
   });
 }
 function tileMatch(p, t) {
