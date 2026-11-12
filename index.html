@@ -4819,22 +4819,24 @@ async function submitForm(e) {
 // ══════════════════════════════════════════════════════════════
 // Permit detail page: one server call. The auto-stop check runs in the background and only
 // re-renders if it actually stopped a shift.
+function renderPermitView_(permitNo, v) {
+  const el=document.getElementById('pg-view-permit');
+  if(!v||!v.permit){ el.innerHTML='<div class="card">Permit not found.</div>'; return; }
+  buildView(el, v.permit, v.log||[], v.tests||[], v.scans||[], v.sigs||[]);
+  el.dataset.permit = permitNo;
+  el.querySelectorAll('.layout-split > div > .card').forEach((cd, i) => { cd.style.animationDelay = (Math.min(i, 8) * 60) + 'ms'; cd.classList.add('card-in'); });
+  try {
+    const snap = JSON.stringify(((v.permit.extras||{}).shifts||[]).map(s => [!!s.originatorSignTime, !!s.acceptorSignTime, !!s.safetySignTime, !!s.dutyOfficerSignTime, !!s.jobStartTime, !!s.jobStopTime, s.shiftStatus]));
+    const key = 'snap_' + permitNo, prev = sessionStorage.getItem(key);
+    if (prev && prev !== snap) { const sec = document.getElementById('shifts-section'); if (sec) sec.classList.add('glow-once'); }
+    sessionStorage.setItem(key, snap);
+  } catch (e) {}
+  checkAutoStopInBackground(permitNo);
+}
 function loadView(permitNo) {
   const el=document.getElementById('pg-view-permit');
   if (el.dataset.permit !== permitNo) el.innerHTML='<div class="empty-state"><div class="spinner" style="margin:0 auto"></div></div>';
-  api('getPermitView',{permitNo}).then(v=>{
-    if(!v||!v.permit){ el.innerHTML='<div class="card">Permit not found.</div>'; return; }
-    buildView(el, v.permit, v.log||[], v.tests||[], v.scans||[], v.sigs||[]);
-    el.dataset.permit = permitNo;
-    el.querySelectorAll('.layout-split > div > .card').forEach((cd, i) => { cd.style.animationDelay = (Math.min(i, 8) * 60) + 'ms'; cd.classList.add('card-in'); });
-    try {
-      const snap = JSON.stringify(((v.permit.extras||{}).shifts||[]).map(s => [!!s.originatorSignTime, !!s.acceptorSignTime, !!s.safetySignTime, !!s.dutyOfficerSignTime, !!s.jobStartTime, !!s.jobStopTime, s.shiftStatus]));
-      const key = 'snap_' + permitNo, prev = sessionStorage.getItem(key);
-      if (prev && prev !== snap) { const sec = document.getElementById('shifts-section'); if (sec) sec.classList.add('glow-once'); }
-      sessionStorage.setItem(key, snap);
-    } catch (e) {}
-    checkAutoStopInBackground(permitNo);
-  }).catch(er=>{
+  api('getPermitView',{permitNo}).then(v=>renderPermitView_(permitNo, v)).catch(er=>{
     // Server not yet updated to the combined endpoint: use the separate calls
     if (/Unknown action/i.test(er.message||'')) return loadViewLegacy(permitNo);
     el.innerHTML=`<div class="card"><div class="alert alert-error">❌ ${er.message}</div></div>`;
@@ -6051,11 +6053,11 @@ async function doApprove(no, role) {
             const status = (r&&r.newStatus)||'Updated';
             toast('Approved ✅ — '+status, 'ok');
             loadNotifications();
-            setTimeout(()=>loadView(no), 400);
+            if (r && r.view) renderPermitView_(no, r.view); else loadView(no);
           } else {
             toast('Permit rejected','warn');
             loadNotifications();
-            setTimeout(()=>nav('my-permits'), 500);
+            nav('my-permits');
           }
         })
         .catch(er=>{
@@ -6134,11 +6136,11 @@ function startClosureSign(step) {
         const jobSt = document.querySelector('input[name=sec8_job_status]:checked')?.value||'Completed';
         load(true);
         try {
-          await api('closePermit', { permitNo:no, comments: jobSt+(closureComments?' — '+closureComments:'')+(comments?' | Acceptor: '+comments:'') });
+          const _cr = await api('closePermit', { permitNo:no, comments: jobSt+(closureComments?' — '+closureComments:'')+(comments?' | Acceptor: '+comments:'') });
           load(false);
           document.getElementById('sec8-closure-panel').style.display='none';
           toast('Permit '+no+' closed ✅','ok');
-          setTimeout(()=>loadView(no),800);
+          if (_cr && _cr.view) renderPermitView_(no, _cr.view); else loadView(no);
         } catch(er) { load(false); toast(er.message,'err'); }
       } else {
         toast('Step '+(step)+' signed ✅ — proceed to next step','ok');
@@ -7632,11 +7634,11 @@ async function initiateClosure() {
   if (!_hc.ok) return;
   load(true,'Initiating closure…');
   try {
-    await api('closePermit', { permitNo: no, jobStatus, comments, action: 'initiate' });
+    const _cr = await api('closePermit', { permitNo: no, jobStatus, comments, action: 'initiate' });
     load(false);
     document.getElementById('sec8-closure-panel').style.display='none';
     toast('Closure initiated — permit sent to Job Performer for QR acknowledgement','ok');
-    setTimeout(()=>loadView(no), 1200);
+    if (_cr && _cr.view) renderPermitView_(no, _cr.view); else loadView(no);
   } catch(e) {
     load(false);
     if(errEl){ errEl.textContent='❌ '+e.message; errEl.style.display='block'; }
@@ -7984,7 +7986,7 @@ async function cancelPendingShiftPrompt(permitNo) {
     await api('cancelPendingShift', { permitNo, reason: reason.trim() });
     load(false);
     toast('Shift cancelled — add a new shift to reschedule ✅','ok');
-    setTimeout(()=>loadView(permitNo), 600);
+    loadView(permitNo);
   } catch(e) { load(false); toast(e.message,'err'); }
 }
 
@@ -8128,7 +8130,7 @@ async function saveShift() {
         load(false);
         document.getElementById('shift-modal').classList.remove('open');
         toast('Shift added — workers must acknowledge via QR Scanner ✅','ok');
-        setTimeout(()=>loadView(no), 800);
+        loadView(no);
       } catch(e) { load(false); errEl.textContent=e.message; errEl.style.display='block'; }
     }
   );
