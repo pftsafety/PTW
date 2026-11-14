@@ -3924,7 +3924,9 @@ function tbtHighlight(key, val) {
 function tbtSelectAll(val) {
   let keys = ['a','b','c','d','e','f','g','h','i','j'];
   if (val === 'Yes') {
-    keys = ['a','b','c','d','e','f','g','h','i']; // Excludes 'j' when 'Yes' is clicked
+    keys = ['a','b','c','d','e','f','g','h','i']; // items a to i become Yes
+    const naOthers = document.querySelector('input[name="tbt_j"][value="NA"]');   // 'Others (specify)' becomes NA
+    if (naOthers) { naOthers.checked = true; tbtHighlight('j','NA'); }
   }
   keys.forEach(k=>{
     const inp = document.querySelector(`input[name="tbt_${k}"][value="${val}"]`);
@@ -6471,7 +6473,7 @@ function saveTBTDayData(day) {
   const TBT_KEYS=['a','b','c','d','e','f','g','h','i','j'];
   TBT_KEYS.forEach(k=>{
     const sel=document.querySelector(`input[name="tbt_${k}"]:checked`);
-    data[k]=sel?sel.value:'No';
+    data[k]=sel?sel.value:'';
   });
   const notesEl=document.getElementById('tbt-notes-day');
   data.notes=notesEl?notesEl.value:'';
@@ -6482,7 +6484,8 @@ function loadTBTDayData(day) {
   const data=_tbtDayData[day]||{};
   const TBT_KEYS=['a','b','c','d','e','f','g','h','i','j'];
   TBT_KEYS.forEach(k=>{
-    const val=data[k]||'No';
+    const val=data[k]||'';
+    if(!val) return;   // unanswered stays unanswered
     const inp=document.querySelector(`input[name="tbt_${k}"][value="${val}"]`);
     if(inp){ inp.checked=true; tbtHighlight(k,val); }
   });
