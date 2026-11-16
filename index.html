@@ -1090,6 +1090,12 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid
 #pg-new-permit .ptw-row.ptw-row-4 { grid-template-columns:repeat(4,minmax(0,1fr)); align-items:start; }
 @media (max-width:900px) { #pg-new-permit .ptw-row.ptw-row-4 { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media (max-width:620px) { #pg-new-permit .ptw-row.ptw-row-4 { grid-template-columns:1fr; } }
+
+/* Add work entry: date, shift, from, to and the button in one row (wraps on smaller screens) */
+#pg-new-permit .we-row { display:grid; grid-template-columns:1.2fr 1.2fr .8fr .8fr auto; gap:10px; align-items:end; }
+#pg-new-permit .we-row > div > button { height:38px; white-space:nowrap; }
+@media (max-width:1000px) { #pg-new-permit .we-row { grid-template-columns:1fr 1fr; } }
+@media (max-width:560px) { #pg-new-permit .we-row { grid-template-columns:1fr; } }
 </style>
 </head>
 <body>
@@ -2452,25 +2458,8 @@ document.addEventListener('input', e => {
 }, true);
 // Sticky summary at the top of the new permit form: the key details, as they are filled in
 function updateFormSummary_() {
-  const pg = document.getElementById('pg-new-permit'); if (!pg) return;
-  let bar = document.getElementById('form-summary');
-  if (!bar) {
-    const nav = document.getElementById('form-sec-nav'); if (!nav) return;
-    bar = document.createElement('div'); bar.id = 'form-summary';
-    nav.parentNode.insertBefore(bar, nav);
-  }
-  const val = n => { const el = pg.querySelector('[name="' + n + '"]'); return el ? String(el.value || '').trim() : ''; };
-  const typeEl = pg.querySelector('input[name=type]:checked');
-  const items = [
-    ['Nature', typeEl ? typeEl.value : ''], ['Area', val('workArea')],
-    ['Valid from', val('validFrom')], ['Valid to', val('validTo')],
-    ['Acceptor', val('acceptorName')], ['Safety', val('safetyName')]
-  ].filter(([k, v]) => v);
-  bar.innerHTML = items.length
-    ? items.map(([k, v]) => '<div class="fsum-item"><span>' + esc(k) + '</span><b>' + esc(v) + '</b></div>').join('')
-    : '<div class="fsum-empty">The permit summary appears here as you fill in the form.</div>';
-  bar.insertAdjacentHTML('beforeend', '<div class="fsum-save" id="fsum-save"></div>');
-  updateAutoSaveNote_();
+  // The summary bar has been removed from the new permit form (autosave still runs in the background)
+  document.getElementById('form-summary')?.remove();
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   if (e.target && e.target.closest && e.target.closest('#pg-new-permit')) updateFormSummary_();
@@ -3646,7 +3635,7 @@ async function renderForm() {
       <!-- ADD WORK ENTRY PANEL -->
       <div style="background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;margin-bottom:14px">
         <div style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px">Add Work Entry</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:end;margin-bottom:10px">
+        <div class="we-row" style="margin-bottom:10px">
           <div class="ptw-field" style="margin-bottom:0">
             <label>Work Date *</label>
             <input type="date" id="we-date" min="${today}" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;outline:none">
@@ -3661,13 +3650,7 @@ async function renderForm() {
               <option value="General Shift (09:15–17:15)">General Shift</option>
             </select>
           </div>
-        </div>
-
-        <div id="we-duty-warn" style="display:none;margin-bottom:10px;padding:4px 10px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;font-size:11px;color:#6d28d9;font-weight:700">
-          ⚠️ Third Shift requires Duty Officer approval
-        </div>
-
-        <div style="display:grid;grid-template-columns:120px 120px 1fr;gap:10px;align-items:end;flex-wrap:wrap">
+        
           <div class="ptw-field" style="margin-bottom:0">
             <label>From (hrs)</label>
             <input type="time" id="we-from" value="06:00" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;outline:none">
@@ -3679,6 +3662,9 @@ async function renderForm() {
           <div>
             <button type="button" data-on-click="addWorkEntry()" class="btn btn-primary" style="width:100%;justify-content:center;padding:9px">＋ Add Entry</button>
           </div>
+        </div>
+        <div id="we-duty-warn" style="display:none;margin-bottom:10px;padding:4px 10px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;font-size:11px;color:#6d28d9;font-weight:700">
+          ⚠️ Third Shift requires Duty Officer approval
         </div>
         <div id="we-err" style="display:none;color:var(--red);font-size:12px;margin-top:6px;padding:5px 10px;background:#fef2f2;border-radius:4px"></div>
       </div>
