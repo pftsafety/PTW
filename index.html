@@ -1108,6 +1108,13 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid
 @keyframes busyFade { from { opacity:0; } to { opacity:1; } }
 @keyframes busyPop { from { opacity:0; transform:scale(.9) translateY(6px); } to { opacity:1; transform:none; } }
 @media (prefers-reduced-motion: reduce) { .busy-ov, .busy-card, .busy-ring, .busy-tick { animation:none !important; } }
+
+/* Form header: "HLL LIFECARE LIMITED" on one line */
+#pg-new-permit .ptw-header-grid { grid-template-columns:210px 1fr auto; }
+#pg-new-permit .ptw-logo-main { font-size:12.5px; letter-spacing:.4px; white-space:nowrap; }
+
+/* Company logo in the form header (hll-logo.png next to index.html); falls back to the company name */
+#pg-new-permit .ptw-logo-img { display:block; max-width:150px; max-height:56px; width:auto; height:auto; object-fit:contain; background:#fff; border-radius:8px; padding:6px 10px; margin:0 auto 4px; }
 </style>
 </head>
 <body>
@@ -3276,13 +3283,12 @@ async function renderForm() {
   <div class="ptw-header-bar">
     <div class="ptw-header-grid">
       <div class="ptw-logo-cell">
-        <div class="ptw-logo-main">HLL</div>
-        <div class="ptw-logo-sub">LIFECARE LIMITED<br>PEROORKADA FACTORY<br>THIRUVANANTHAPURAM</div>
+        <img src="./hll-logo.png" alt="HLL Lifecare Limited" class="ptw-logo-img" onerror="this.outerHTML='<div class=&quot;ptw-logo-main&quot;>HLL LIFECARE LIMITED</div>'">
+        <div class="ptw-logo-sub">PEROORKADA FACTORY<br>THIRUVANANTHAPURAM</div>
       </div>
       <div class="ptw-title-cell">
         <div class="ptw-form-title">PERMIT TO WORK REQUEST FORM</div>
         <div class="ptw-form-ref">SAF 21/R01 &nbsp;·&nbsp; Effective Date: 15.01.2026 &nbsp;·&nbsp; Rev: 00 &nbsp;·&nbsp; Issue: 03</div>
-        <div class="ptw-form-ref" style="margin-top:4px">Approved by: Gokul V Babu, Safety Officer</div>
       </div>
       <div class="ptw-meta-cell">
         <div class="ptw-meta-row"><span class="ptw-meta-key">Valid for</span><span>7 Calendar Days</span></div>
