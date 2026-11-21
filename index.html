@@ -5446,7 +5446,7 @@ function buildView(el, p, log, tests, scans, sigs) {
       <div class="card">
         <div class="form-section-header"><div class="fs-num">🔏</div><div class="fs-title">Permit Closure</div></div>
         ${!_cl.inClosure ? '<div style="font-size:13px;color:var(--slate)">Closure has not been initiated.</div>' : `
-          <div style="font-size:12px;color:var(--slate);margin-bottom:8px">Job status: <strong>${esc(ex.closureJobStatus||'—')}</strong>${(ex.closureComments||ex.sec8Comments) ? ' · Remarks: '+esc(ex.closureComments||ex.sec8Comments) : ''}</div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:8px">Job status: <strong>${esc(ex.closureJobStatus||'—')}</strong>${(ex.closureComments||ex.sec8Comments) ? ' · Remarks: '+esc(ex.closureComments||ex.sec8Comments) : ''}${(ex.uploads||{})['Closure Housekeeping'] ? ' · <a href="'+esc(ex.uploads['Closure Housekeeping'].url)+'" target="_blank" rel="noopener" style="color:var(--blue)">📷 Housekeeping photo</a>' : ''}</div>
           <div class="tl-h">${_cl.rows.map(r => tlStepH(r.icon, r.label, r.name, r.time, r.done, r.active)).join('')}</div>`}
       </div>
 
@@ -5468,10 +5468,10 @@ function buildView(el, p, log, tests, scans, sigs) {
               <div style="background:#f8fafc;padding:8px 12px;font-size:11px;font-weight:700;color:var(--navy);border-bottom:1px solid #e2e8f0;text-transform:uppercase;letter-spacing:.4px">Job Completion Status *</div>
               <div style="padding:10px 12px;display:flex;flex-direction:column;gap:6px">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:5px;font-size:13px">
-                  <input type="radio" name="sec8_job_status" value="Completed" style="accent-color:var(--green)"> ✓ Job completed &amp; housekeeping done
+                  <input type="radio" name="sec8_job_status" value="Completed" data-on-change="updateClosePhotoRow_()" style="accent-color:var(--green)"> ✓ Job completed &amp; housekeeping done
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:7px 10px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:5px;font-size:13px">
-                  <input type="radio" name="sec8_job_status" value="Incomplete" style="accent-color:var(--red)"> ✕ Job incomplete
+                  <input type="radio" name="sec8_job_status" value="Incomplete" data-on-change="updateClosePhotoRow_()" style="accent-color:var(--red)"> ✕ Job incomplete
                 </label>
               </div>
             </div>
@@ -5486,6 +5486,7 @@ function buildView(el, p, log, tests, scans, sigs) {
             <strong>Closure Signing Sequence:</strong><br>
             1️⃣ Job Performer — QR scan via Scanner app &nbsp;→&nbsp; 2️⃣ Originator signs &nbsp;→&nbsp; 3️⃣ Safety In-Charge signs &nbsp;→&nbsp; 4️⃣ Permit Acceptor signs
           </div>
+          <div id="sec8-photo-row" style="display:none;margin-bottom:14px;padding:12px 14px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:var(--radius-sm)"><label style="font-size:11px;font-weight:700;color:#14532d;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:6px">Housekeeping photo <span id="sec8-photo-mark" style="color:var(--red)"></span></label><input type="file" id="sec8-photo-file" accept="image/*" capture="environment" data-on-change="closeFileChosen_(this)" style="font-size:13px"><div id="sec8-photo-name" style="font-size:11px;color:var(--slate);margin-top:4px"></div></div>
           <button type="button" class="btn btn-primary" style="width:100%;padding:12px;font-size:14px;margin-bottom:8px" data-on-click="initiateClosure()">
             🔏 Initiate Closure — Send to Job Performer
           </button>
@@ -7419,6 +7420,20 @@ function _maybeStartLoginAnim(id){ if(id==='login-screen') setTimeout(startLogin
 
 
 // ── Admin Settings ────────────────────────────────────────────
+// Closure: the housekeeping photo appears when "Job completed" is ticked (and the admin has switched it on)
+async function updateClosePhotoRow_() {
+  const row = document.getElementById('sec8-photo-row'); if (!row) return;
+  const completed = document.querySelector('input[name=sec8_job_status]:checked')?.value === 'Completed';
+  let s = _systemSettings;
+  if (!s) { try { s = _systemSettings = await api('getSettings'); } catch (e) { s = {}; } }
+  row.style.display = (completed && s.closeUploadEnabled) ? 'block' : 'none';
+  const mark = document.getElementById('sec8-photo-mark');
+  if (mark) mark.textContent = s.closeUploadRequired ? '*' : '(optional)';
+}
+function closeFileChosen_(el) {
+  const n = document.getElementById('sec8-photo-name');
+  if (n) n.textContent = el.files && el.files[0] ? '📷 ' + el.files[0].name : '';
+}
 async function initiateClosure() {
   const no = _closurePermitNo || document.getElementById('sec8-permit-no')?.value;
   if (!no) { toast('No permit loaded','err'); return; }
@@ -7438,10 +7453,22 @@ async function initiateClosure() {
       return;
     }
   }
+  const _photoRow = document.getElementById('sec8-photo-row');
+  const _photo = (_photoRow && _photoRow.style.display === 'block') ? (document.getElementById('sec8-photo-file')?.files?.[0] || null) : null;
+  const _hasPhoto = !!((_currentPermitView && _currentPermitView.extras && _currentPermitView.extras.uploads || {})['Closure Housekeeping']);
+  if (jobStatus === 'Completed' && _systemSettings && _systemSettings.closeUploadRequired && !_photo && !_hasPhoto) {
+    errEl.textContent = '❌ Add the housekeeping photo before starting closure.'; errEl.style.display = 'block'; return;
+  }
   const _hc = await confirmSheet({ title: 'Initiate closure?', lines: ['Work Stop must be recorded for every shift. This starts the closure signatures.'], okLabel: 'Hold to start closure', danger: true, hold: true });
   if (!_hc.ok) return;
   load(true,'Initiating closure…');
   try {
+    if (_photo) {
+      load(true,'Uploading photo…');
+      const _b64 = await fileToBase64(_photo);
+      await api('uploadFile', { fileName: _photo.name, mimeType: _photo.type, base64Data: _b64, permitNo: no, fileType: 'Closure Housekeeping' });
+      load(true,'Initiating closure…');
+    }
     const _cr = await api('closePermit', { permitNo: no, jobStatus, comments, action: 'initiate' });
     load(false);
     document.getElementById('sec8-closure-panel').style.display='none';
@@ -8045,6 +8072,8 @@ async function loadAdminSettings() {
     if (el('s-supp-required')) el('s-supp-required').checked = s.suppPermitUploadRequired !== false;
     if (el('s-tbt-enabled'))   el('s-tbt-enabled').checked   = s.tbtUploadEnabled !== false;
     if (el('s-tbt-required'))  el('s-tbt-required').checked  = s.tbtUploadRequired !== false;
+    if (el('s-close-enabled'))  el('s-close-enabled').checked  = !!s.closeUploadEnabled;
+    if (el('s-close-required')) el('s-close-required').checked = !!s.closeUploadRequired;
   } catch(e) { toast(e.message,'err'); }
 }
 
@@ -8056,6 +8085,8 @@ async function saveSettings() {
     supp_permit_upload_required:  String(el('s-supp-required')?.checked||false),
     tbt_upload_enabled:           String(el('s-tbt-enabled')?.checked||false),
     tbt_upload_required:          String(el('s-tbt-required')?.checked||false),
+    close_upload_enabled:         String(el('s-close-enabled')?.checked||false),
+    close_upload_required:        String(el('s-close-required')?.checked||false),
   };
   try {
     await api('updateSettings', payload);
@@ -8104,6 +8135,14 @@ if ('serviceWorker' in navigator) {
     <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
       <div><div style="font-size:14px;font-weight:600;color:var(--navy)">Tool Box Talk — Mandatory</div><div style="font-size:11px;color:var(--slate)">Block submission if not uploaded</div></div>
       <label class="tog-wrap"><input type="checkbox" id="s-tbt-required" data-on-change="saveSettings()"><span class="tog"></span></label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-top:1px solid var(--bg)">
+      <div><div style="font-size:14px;font-weight:600;color:var(--navy)">Closure Housekeeping Photo</div><div style="font-size:11px;color:var(--slate)">Ask for a photo of the cleared site when closing a permit</div></div>
+      <label class="tog-wrap"><input type="checkbox" id="s-close-enabled" data-on-change="saveSettings()"><span class="tog"></span></label>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0">
+      <div><div style="font-size:14px;font-weight:600;color:var(--navy)">Housekeeping Photo — Mandatory</div><div style="font-size:11px;color:var(--slate)">Closure cannot start without the photo when the job is marked completed</div></div>
+      <label class="tog-wrap"><input type="checkbox" id="s-close-required" data-on-change="saveSettings()"><span class="tog"></span></label>
     </div>
     <div id="settings-save-note" style="display:none;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:12px;font-weight:600;color:#166534;margin-top:10px">✅ Settings saved</div>
   </div>
