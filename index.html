@@ -2032,7 +2032,7 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid
         <button id="sig-btn-reject" class="btn btn-ghost" style="flex:1;color:var(--red)" data-on-click="setSigAction('reject')">✕ Reject</button>
       </div>
       <div id="sig-afterhours-note" style="display:none;padding:8px 12px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:11px;color:#6d28d9;margin-bottom:12px">
-        ⏱ Approving after 17:15 routes this permit automatically to the Duty Officer before it becomes Active.
+        ⏱ Work scheduled after 17:15 goes to the Duty Officer for approval after Safety, before it becomes Active.
       </div>
       <div id="sig-facts" style="display:none"></div>
       <!-- Signature canvas -->
@@ -3682,7 +3682,7 @@ async function renderForm() {
           </div>
         </div>
         <div id="we-duty-warn" style="display:none;margin-bottom:10px;padding:4px 10px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:10px;font-size:11px;color:#6d28d9;font-weight:700">
-          ⚠️ Third Shift requires Duty Officer approval
+          ⚠️ Work after 17:15 needs Duty Officer approval after Safety
         </div>
         <div id="we-err" style="display:none;color:var(--red);font-size:12px;margin-top:6px;padding:5px 10px;background:#fef2f2;border-radius:4px"></div>
       </div>
@@ -4242,6 +4242,11 @@ const SHIFT_TIME_MAP = {
   'General Shift (09:15–17:15)': { from:'09:15', to:'17:15' }
 };
 
+// Work scheduled after 17:15 (starts after 17:15, runs past it, or runs overnight) needs Duty Officer approval after Safety
+function needsDutyFromTimes_(fromStr, toStr) {
+  const f = timeToMins(fromStr), t = timeToMins(toStr), cut = 17 * 60 + 15;
+  return f >= cut || t > cut || t <= f;
+}
 function onShiftSelectChange() {
   const sel = document.getElementById('we-shift-select');
   const val = sel ? sel.value : '';
@@ -4251,7 +4256,7 @@ function onShiftSelectChange() {
     const to = document.getElementById('we-to');  if (to) to.value = t.to;
   }
   const dw = document.getElementById('we-duty-warn');
-  if (dw) dw.style.display = val.indexOf('Third') > -1 ? 'block' : 'none';
+  if (dw) dw.style.display = (t && needsDutyFromTimes_(t.from, t.to)) ? 'block' : 'none';
 }
 
 function addWorkEntry() {
@@ -4293,7 +4298,7 @@ function addWorkEntry() {
 
   const shiftVal = document.getElementById('we-shift-select') ? document.getElementById('we-shift-select').value : '';
   if (!shiftVal) { errEl.textContent='Select a shift.'; errEl.style.display='block'; return; }
-  const dutyRequired = shiftVal.indexOf('Third') > -1;
+  const dutyRequired = needsDutyFromTimes_(fromVal, toVal);
   const dateLabel = new Date(dateVal+'T00:00:00').toLocaleDateString('en-IN',
     { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) + ' · ' + shiftVal;
 
@@ -6755,6 +6760,7 @@ function handlePrintHash() {
 
 function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
   workerScans = workerScans||[];
+  const logoSrc = new URL('hll-logo-light.png', window.location.href).href;   // black-text logo for white paper
   const ex = p.extras || {};
   const sigMap = {};
   (sigs||[]).forEach(s=>{ sigMap[s.role] = s; });
@@ -7057,7 +7063,7 @@ function buildPrintHTML(p, sigs, log, gasTests, workerScans) {
 <table class="rep"><thead><tr><td><table style="margin-bottom:0">
   <tr>
     <td rowspan="2" style="width:18%;text-align:center;padding:6px;font-size:12px;font-weight:900;border:1px solid #000">
-      HLL LIFECARE<br>LIMITED<br>
+      <img src="${logoSrc}" alt="HLL Lifecare Limited" style="display:block;margin:0 auto 4px;max-width:100%;max-height:44px;object-fit:contain" onerror="this.outerHTML='HLL LIFECARE<br>LIMITED'">
       <div style="font-size:9.5px;font-weight:400">Peroorkada Factory<br>Thiruvananthapuram</div>
     </td>
     <td colspan="3" style="text-align:center;border:1px solid #000;padding:4px">
