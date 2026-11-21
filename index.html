@@ -1096,6 +1096,18 @@ button:focus-visible, a:focus-visible, summary:focus-visible { outline:2px solid
 #pg-new-permit .we-row > div > button { height:38px; white-space:nowrap; }
 @media (max-width:1000px) { #pg-new-permit .we-row { grid-template-columns:1fr 1fr; } }
 @media (max-width:560px) { #pg-new-permit .we-row { grid-template-columns:1fr; } }
+
+/* Sign-off overlay (spinner, then tick) */
+.busy-ov { position:fixed; inset:0; z-index:2500; background:rgba(15,23,42,.28); display:flex; align-items:center; justify-content:center; animation:busyFade .2s ease both; }
+.busy-ov.busy-out { animation:busyFade .2s ease reverse both; }
+.busy-card { background:#fff; border-radius:16px; padding:22px 26px; min-width:220px; display:flex; flex-direction:column; align-items:center; gap:12px; box-shadow:0 20px 50px rgba(15,23,42,.22); animation:busyPop .3s cubic-bezier(.34,1.56,.64,1) both; }
+.busy-ring { width:34px; height:34px; border-radius:50%; border:3px solid #dbe3ee; border-top-color:#2563eb; animation:busySpin .8s linear infinite; }
+.busy-tick { width:44px; height:44px; border-radius:50%; background:#16a34a; color:#fff; display:flex; align-items:center; justify-content:center; font-size:22px; font-weight:700; animation:busyPop .35s cubic-bezier(.34,1.56,.64,1) both; }
+.busy-msg { font-size:14px; font-weight:600; color:#0f172a; text-align:center; }
+@keyframes busySpin { to { transform:rotate(360deg); } }
+@keyframes busyFade { from { opacity:0; } to { opacity:1; } }
+@keyframes busyPop { from { opacity:0; transform:scale(.9) translateY(6px); } to { opacity:1; transform:none; } }
+@media (prefers-reduced-motion: reduce) { .busy-ov, .busy-card, .busy-ring, .busy-tick { animation:none !important; } }
 </style>
 </head>
 <body>
@@ -4369,7 +4381,7 @@ function renderEntryCard(e, isOpen, dayNum) {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span style="font-size:11px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">Workers for this entry</span>
         <div style="display:flex;gap:6px">
-          <button type="button" class="btn btn-ghost btn-xs" data-on-click="openInductionModal()" style="color:var(--blue);font-weight:700">＋ Add from DB</button>
+          <button type="button" class="btn btn-ghost btn-xs" data-on-click="openInductionModal()" style="color:var(--blue);font-weight:700">＋ Add worker</button>
       </div>
       </div>
       <table class="ptw-worker-table">
@@ -4389,7 +4401,7 @@ function renderEntryCard(e, isOpen, dayNum) {
                 <td><input type="text" class="w-cert" value="${esc(w.certNo)}" readonly style="background:#f0fdf4;border:1px solid #86efac;border-radius:4px;width:100%;padding:5px 7px;font-size:12px;font-family:inherit"></td>
                 <td style="text-align:center"><button type="button" data-on-click="removeWorkerFromEntry('${e.id}',${i})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:13px">✕</button></td>
               </tr>`).join('')
-            : `<tr><td colspan="5" style="text-align:center;padding:12px;color:var(--slate);font-size:12px;font-style:italic">No workers added — use "Add from DB" or Scan QR</td></tr>`}
+            : `<tr><td colspan="5" style="text-align:center;padding:12px;color:var(--slate);font-size:12px;font-style:italic">No workers added — use "Add worker" or Scan QR</td></tr>`}
         </tbody>
       </table>
     </div>` : ''}
@@ -4414,7 +4426,7 @@ function addInducteeToWorkers(name, company, certNo) {
     if (_workEntries.length === 0) {
       toast('Add a work entry first (date & time) before adding workers','warn');
     } else {
-      toast('Tap an entry (date row) to open it, then use Add from DB','warn');
+      toast('Tap an entry (date row) to open it, then use Add worker','warn');
     }
     closeInductionModal();
     return;
@@ -4764,6 +4776,25 @@ function showSubmitOverlay_() {
     + '<div style="width:28px;height:28px;border-radius:50%;border:3px solid #cbd5e1;border-top-color:var(--navy);animation:ptwSpin .8s linear infinite"></div>'
     + '<div>Creating permit… please wait</div>';
   document.body.appendChild(o);
+}
+// Sign-off overlay: a spinner while the signature is saved, then a tick before the permit redraws
+function showBusyOverlay_(msg) {
+  document.getElementById('busy-overlay')?.remove();
+  const o = document.createElement('div');
+  o.id = 'busy-overlay';
+  o.className = 'busy-ov';
+  o.innerHTML = '<div class="busy-card"><div class="busy-ring"></div><div class="busy-msg">' + esc(msg) + '</div></div>';
+  document.body.appendChild(o);
+}
+function flashBusyOverlayDone_(msg) {
+  const o = document.getElementById('busy-overlay'); if (!o) return;
+  o.querySelector('.busy-card').innerHTML = '<div class="busy-tick">✓</div><div class="busy-msg">' + esc(msg) + '</div>';
+  setTimeout(hideBusyOverlay_, 700);
+}
+function hideBusyOverlay_() {
+  const o = document.getElementById('busy-overlay'); if (!o) return;
+  o.classList.add('busy-out');
+  setTimeout(() => o.remove(), 200);
 }
 function hideSubmitOverlay_() { document.getElementById('submit-overlay')?.remove(); }
 async function submitForm(e) {
@@ -5451,12 +5482,6 @@ function buildView(el, p, log, tests, scans, sigs) {
           </div>
 
           <!-- Handover checkbox -->
-          <div style="padding:10px 12px;background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:var(--radius-sm);margin-bottom:14px">
-            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;font-weight:600;color:#1e40af">
-              <input type="checkbox" name="sec8_handover_orig" id="sec8_handover_orig" style="width:16px;height:16px;accent-color:#2563eb">
-              Work area handed over to Permit Originator &amp; site cleared
-            </label>
-          </div>
           <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:14px;font-size:12px;color:#14532d;line-height:1.6">
             <strong>Closure Signing Sequence:</strong><br>
             1️⃣ Job Performer — QR scan via Scanner app &nbsp;→&nbsp; 2️⃣ Originator signs &nbsp;→&nbsp; 3️⃣ Safety In-Charge signs &nbsp;→&nbsp; 4️⃣ Permit Acceptor signs
@@ -5465,9 +5490,6 @@ function buildView(el, p, log, tests, scans, sigs) {
             🔏 Initiate Closure — Send to Job Performer
           </button>
           <div id="sec8-err" class="alert alert-error" style="display:none;margin-top:8px"></div>
-          <div style="padding:8px 12px;background:#fffbeb;border-radius:var(--radius-sm);font-size:11px;color:#78350f;margin-top:10px">
-            📋 After all parties sign: White copy → Acceptor Dept · Yellow copy → Safety Dept.
-          </div>
         </div>
       </div>
 
@@ -6196,17 +6218,20 @@ async function doApprove(no, role) {
     no, role,
     (action, comments) => {
       load(true);
+      showBusyOverlay_(action==='approve' ? 'Saving '+role+' approval…' : 'Saving rejection…');
       const apiAction = action==='approve' ? 'approvePermit' : 'rejectPermit';
       // requireDutyOfficer is now auto-determined server-side from approval time
       api(apiAction, { permitNo:no, role, comments })
         .then(r=>{
           load(false);
           if(action==='approve') {
+            flashBusyOverlayDone_('Signed — permit updated');
             const status = (r&&r.newStatus)||'Updated';
             toast('Approved ✅ — '+status, 'ok');
             loadNotifications();
             if (r && r.view) renderPermitView_(no, r.view); else loadView(no);
           } else {
+            hideBusyOverlay_();
             toast('Permit rejected','warn');
             loadNotifications();
             nav('my-permits');
@@ -6214,6 +6239,7 @@ async function doApprove(no, role) {
         })
         .catch(er=>{
           load(false);
+          hideBusyOverlay_();
           toast((er&&er.message)||'Approval failed. Try again.','err');
         });
     }
@@ -6254,9 +6280,6 @@ function startClosureSign(step) {
 
   const jobStatus = document.querySelector('input[name=sec8_job_status]:checked')?.value||'';
   if (!jobStatus) { toast('Please select job completion status first','err'); return; }
-  // Validate handover to originator before any closure signing
-  const handedToOrig = document.querySelector('input[name="sec8_handover_orig"]')?.checked;
-  if (!handedToOrig) { toast('Cannot close permit — must be handed over to Permit Originator first','err'); return; }
 
   // Steps: 1=Job Performer, 2=Originator, 3=Safety, 4=Acceptor
   if (step > 1 && _closureStep < step-1) {
@@ -7401,8 +7424,6 @@ async function initiateClosure() {
   if (!no) { toast('No permit loaded','err'); return; }
   const jobStatus = document.querySelector('input[name=sec8_job_status]:checked')?.value||'';
   if (!jobStatus) { toast('Please select job completion status','err'); return; }
-  const handedOver = document.getElementById('sec8_handover_orig')?.checked;
-  if (!handedOver) { toast('Please confirm work area handover to originator','err'); return; }
   const comments = document.getElementById('sec8-comments')?.value||'';
   const errEl = document.getElementById('sec8-err');
   errEl.style.display='none';
